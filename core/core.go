@@ -74,7 +74,32 @@ func (c *Connection) Get(urlEnd string) ([]byte, int, error) {
 	}
 	return body, statuscode, err
 }
+func (c *Connection) tokenAuthentication(askpassword func() string) (bool, error) {
+	authed := false
+	var err error
+	req, _ := http.NewRequest("GET", c.MakeUrl("login/heartbeat"), nil)
 
+	req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
+	resp, err := c.client.Do(req)
+	if err == nil {
+		if resp.StatusCode == 200 {
+			body, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				var hm HeartbeatMessage
+				err = json.Unmarshal(body, &hm)
+				if err == nil {
+					if hm.Status == "ok" {
+						authed = true
+					} else if hm.Status == "expired" {
+						log.Printf("expired token")
+					}
+				}
+			}
+
+		}
+	}
+	return authed, err
+}
 func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 	authed := false
 	var rerr error
@@ -92,27 +117,8 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 
 		if remaining > delayRefreshUntil && c.token != "" {
 			//log.Println("Trying ", c.token)
-			req, _ := http.NewRequest("GET", c.MakeUrl("login/heartbeat"), nil)
+			authed, rerr = c.tokenAuthentication(askpassword)
 
-			req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
-			resp, err := c.client.Do(req)
-			if err == nil {
-				if resp.StatusCode == 200 {
-					body, err := ioutil.ReadAll(resp.Body)
-					if err == nil {
-						var hm HeartbeatMessage
-						err = json.Unmarshal(body, &hm)
-						if err == nil {
-							if hm.Status == "ok" {
-								authed = true
-							} else if hm.Status == "expired" {
-								log.Printf("expired token")
-							}
-						}
-					}
-
-				}
-			}
 		} else if remaining > deadline {
 			if doRenew {
 				//refresh token because we want to be kept up to date
@@ -149,6 +155,7 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 				}
 			} else {
 				log.Printf("Warning, token should be renewed soon! Rerun connect function if you are using config")
+				authed, rerr = c.tokenAuthentication(askpassword)
 			}
 		}
 	}
