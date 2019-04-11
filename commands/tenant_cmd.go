@@ -78,31 +78,24 @@ func GetTenantCommands() *cli.Command {
 			{
 				Name:    "deploy",
 				Aliases: []string{"d"},
-				Usage:   "deploy tenant (will create a new installation instead of just adding it to martini",
-				Action: func(c *cli.Context) error {
-					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth(nil, false)
-					if err == nil {
-						pw := c.String("password")
-						if pw == "" {
-							fmt.Print("Enter tenant server password: ")
-							dbbytePassword, errp := terminal.ReadPassword(int(syscall.Stdin))
-							for errp != nil || len(string(dbbytePassword)) < 3 {
-								fmt.Println()
-								fmt.Print("Password can not be empty (min 3 char):")
-								dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
-							}
-							pw = string(dbbytePassword)
-						}
-
-						t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), c.String("fqdn"), c.String("username"), pw, "-1"}
-
-						err = t.Deploy(conn)
-						if err != nil {
-							log.Println("Error ", err)
-						}
-					}
-					return err
+				Usage:   "deploy tenant (will create a new installation instead of just adding it to martini)",
+				Subcommands: []cli.Command{
+					{
+						Name:    "amazon",
+						Aliases: []string{"a"},
+						Usage:   "deploy an amazon EC2 container",
+						Action: func(c *cli.Context) error {
+							return nil
+						},
+					},
+					{
+						Name:    "vsphere",
+						Aliases: []string{"v"},
+						Usage:   "deploy an vsphere container",
+						Action: func(c *cli.Context) error {
+							return nil
+						},
+					},
 				},
 				Flags: []cli.Flag{
 					cli.StringFlag{
