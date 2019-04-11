@@ -11,7 +11,7 @@ type Token struct {
 	Token      string `json:"token"`
 	Renew      string `json:"renew"`
 	Lifetime   int64  `json:"lifetime"`
-	Status     int    `json:"status"`
+	Status     string `json:"status"`
 	ServerTime int64  `json:"now"`
 }
 type ClientConfig struct {

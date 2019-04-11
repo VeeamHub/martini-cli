@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli"
@@ -52,6 +53,7 @@ func (c *Connection) Post(urlEnd string, json []byte) ([]byte, int, error) {
 	statuscode := -1
 	req, _ := http.NewRequest("POST", c.MakeUrl(urlEnd), bytes.NewReader(json))
 	req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
+
 	resp, err := c.client.Do(req)
 	statuscode = resp.StatusCode
 	if err == nil {
@@ -64,6 +66,7 @@ func (c *Connection) Get(urlEnd string) ([]byte, int, error) {
 	statuscode := -1
 	req, _ := http.NewRequest("GET", c.MakeUrl(urlEnd), nil)
 	req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
+
 	resp, err := c.client.Do(req)
 	statuscode = resp.StatusCode
 	if err == nil {
@@ -72,36 +75,80 @@ func (c *Connection) Get(urlEnd string) ([]byte, int, error) {
 	return body, statuscode, err
 }
 
-func (c *Connection) Auth() error {
+func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 	authed := false
 	var rerr error
 
-	//first try to heartbeat with token
+	//try to heartbeat with token
 	//if ok, then we can
 	//don't need to care too much about error handling because if it fails, we will just try to authenticate
-	if c.token != "" {
 
-		
-		//log.Println("Trying ", c.token)
-		req, _ := http.NewRequest("GET", c.MakeUrl("login/heartbeat"), nil)
+	if c.lifetime != 0 {
+		timenowu := time.Now().Unix()
+		timenowatserver := timenowu + c.serverskew
+		remaining := c.lifetime - timenowatserver
+		delayRefreshUntil := int64(3550)
+		deadline := int64(15)
 
-		req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
-		resp, err := c.client.Do(req)
-		if err == nil {
-			if resp.StatusCode == 200 {
-				body, err := ioutil.ReadAll(resp.Body)
-				if err == nil {
-					var hm HeartbeatMessage
-					err = json.Unmarshal(body, &hm)
+		if remaining > delayRefreshUntil && c.token != "" {
+			//log.Println("Trying ", c.token)
+			req, _ := http.NewRequest("GET", c.MakeUrl("login/heartbeat"), nil)
+
+			req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
+			resp, err := c.client.Do(req)
+			if err == nil {
+				if resp.StatusCode == 200 {
+					body, err := ioutil.ReadAll(resp.Body)
 					if err == nil {
-						if hm.Status == "ok" {
-							authed = true
-						} else if hm.Status == "expired" {
-							log.Printf("expired token")
+						var hm HeartbeatMessage
+						err = json.Unmarshal(body, &hm)
+						if err == nil {
+							if hm.Status == "ok" {
+								authed = true
+							} else if hm.Status == "expired" {
+								log.Printf("expired token")
+							}
+						}
+					}
+
+				}
+			}
+		} else if remaining > deadline {
+			if doRenew {
+				//refresh token because we want to be kept up to date
+
+				req, _ := http.NewRequest("POST", c.MakeUrl("login/renew"), strings.NewReader(fmt.Sprintf("{\"renew\":\"%s\"}", c.renew)))
+				req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
+				resp, err := c.client.Do(req)
+				if err == nil {
+					if resp.StatusCode == 200 {
+						//as close as possible next to request
+						timenow := time.Now()
+						body, err := ioutil.ReadAll(resp.Body)
+						if err == nil {
+							var token Token
+							err = json.Unmarshal(body, &token)
+							if err == nil {
+								if token.Token != "" {
+									c.token = token.Token
+									c.lifetime = token.Lifetime
+									c.renew = token.Renew
+									c.serverskew = token.ServerTime - timenow.Unix()
+									//log.Println("reeeenewd!")
+									authed = true
+								} else {
+									rerr = errors.New("Token is empty which should not happen. Are you sure this is a martini server")
+									//log.Printf("%v", rerr)
+								}
+							} else {
+								rerr = err
+								//log.Printf("%v", rerr)
+							}
 						}
 					}
 				}
-
+			} else {
+				log.Printf("Warning, token should be renewed soon! Rerun connect function if you are using config")
 			}
 		}
 	}
@@ -110,7 +157,12 @@ func (c *Connection) Auth() error {
 	if !authed {
 		var login Login
 		login.Username = c.username
-		login.Password = c.password
+
+		if c.password != "" {
+			login.Password = c.password
+		} else if askpassword != nil {
+			login.Password = askpassword()
+		}
 
 		lbyte, _ := json.Marshal(login)
 		reader := bytes.NewReader(lbyte)
@@ -151,10 +203,11 @@ func (c *Connection) Auth() error {
 	return rerr
 }
 func NewConnectionFromCLIContext(c *cli.Context) *Connection {
-	return NewConnection(c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"))
+	return NewConnection(c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
 }
 
-func NewConnection(server string, token string, login string, password string, ignoressc bool) *Connection {
+func NewConnection(server string, token string, login string, password string, ignoressc bool, renew string, lifetime int64, serverskew int64) *Connection {
+
 	if server == "" {
 		server = "https://localhost/api"
 	}
@@ -165,6 +218,6 @@ func NewConnection(server string, token string, login string, password string, i
 	if ignoressc {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
-	c := Connection{server, token, "", 0, login, password, ignoressc, &http.Client{Transport: tr}, 0}
+	c := Connection{server, token, renew, lifetime, login, password, ignoressc, &http.Client{Transport: tr}, serverskew}
 	return &c
 }

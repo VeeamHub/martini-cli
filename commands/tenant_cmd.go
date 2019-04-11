@@ -24,7 +24,7 @@ func GetTenantCommands() *cli.Command {
 				Usage:   "create tenant",
 				Action: func(c *cli.Context) error {
 					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth()
+					err := conn.Auth(nil, false)
 					if err == nil {
 						pw := c.String("password")
 						if pw == "" {
@@ -81,7 +81,7 @@ func GetTenantCommands() *cli.Command {
 				Usage:   "deploy tenant (will create a new installation instead of just adding it to martini",
 				Action: func(c *cli.Context) error {
 					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth()
+					err := conn.Auth(nil, false)
 					if err == nil {
 						pw := c.String("password")
 						if pw == "" {
@@ -138,7 +138,7 @@ func GetTenantCommands() *cli.Command {
 				Usage:   "list all tenants",
 				Action: func(c *cli.Context) error {
 					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth()
+					err := conn.Auth(nil, false)
 					if err == nil {
 						tenants, err := tenant.List(conn)
 						if err == nil {
@@ -160,7 +160,7 @@ func GetTenantCommands() *cli.Command {
 				Usage:   "delete a tenant",
 				Action: func(c *cli.Context) error {
 					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth()
+					err := conn.Auth(nil, false)
 					if err == nil {
 						err := tenant.Delete(conn, c.String("id"))
 						if err != nil {

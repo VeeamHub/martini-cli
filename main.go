@@ -28,6 +28,9 @@ func main() {
 	tokenDefault := ""
 	serverDefault := "https://localhost/api"
 	usernameDefault := "admin"
+	renewtokenDefault := ""
+	renewlifetimeDefault := int64(0)
+	renewserverskewDefault := int64(0)
 
 	if _, err := os.Stat(cfile); err == nil {
 		body, err := ioutil.ReadFile(cfile)
@@ -42,6 +45,15 @@ func main() {
 				}
 				if cc.Username != "" {
 					usernameDefault = cc.Username
+				}
+				if cc.Lifetime != 0 {
+					renewlifetimeDefault = cc.Lifetime
+				}
+				if cc.ServerSkew != 0 {
+					renewserverskewDefault = cc.ServerSkew
+				}
+				if cc.Renew != "" {
+					renewtokenDefault = cc.Renew
 				}
 
 			} else {
@@ -72,8 +84,10 @@ func main() {
 			Usage:   "Connect and save config file",
 			Action: func(c *cli.Context) error {
 				var rerr error
-				pw := c.GlobalString("password")
-				if pw == "" {
+
+				conn := core.NewConnection(c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
+				rerr = conn.Auth(func() string {
+					pw := ""
 					fmt.Print("Type in the admin password: ")
 					userPasswordByte, errp := terminal.ReadPassword(int(syscall.Stdin))
 					for errp != nil || len(string(userPasswordByte)) < 3 {
@@ -82,9 +96,8 @@ func main() {
 						userPasswordByte, errp = terminal.ReadPassword(int(syscall.Stdin))
 					}
 					pw = string(userPasswordByte)
-				}
-				conn := core.NewConnection(c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), pw, c.GlobalBool("ignoreSelfSignedCertificate"))
-				rerr = conn.Auth()
+					return pw
+				}, true)
 				if rerr == nil {
 					fmt.Println("Authenticated, saving")
 					var cc core.ClientConfig
@@ -143,6 +156,21 @@ func main() {
 			Name:   "verbose",
 			Usage:  "Be verbose",
 			EnvVar: "MARTINICLI_VERBOSE",
+		},
+		cli.StringFlag{
+			Name:  "renewtoken",
+			Value: renewtokenDefault,
+			Usage: "renew token (internal)",
+		},
+		cli.Int64Flag{
+			Name:  "renewlifetime",
+			Value: renewlifetimeDefault,
+			Usage: "lifetime of renewal token",
+		},
+		cli.Int64Flag{
+			Name:  "renewserverskew",
+			Value: renewserverskewDefault,
+			Usage: "skew in clocks between server and client",
 		},
 	}
 
