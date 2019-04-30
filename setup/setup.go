@@ -2,7 +2,6 @@ package setup
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
@@ -10,12 +9,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
+
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 
 	"database/sql"
 
@@ -124,7 +125,7 @@ func Setup(dbhost string, dbname string, dblogin string, dbbytePassword []byte) 
 }
 
 func DownloadSoftware(target string) error {
-	return DownloadSoftwareGithub("tdewin/rps", target)
+	return DownloadSoftwareGithub(githubrepo(), target)
 }
 
 func DownloadSoftwareGithub(repo string, target string) error {
@@ -145,6 +146,8 @@ func DownloadSoftwareGithub(repo string, target string) error {
 			}
 			fmt.Println("Latest release:", latest.Zipball, latest.Published)
 			lurl := fmt.Sprintf("https://github.com/%s.git", repo)
+
+			/* //run git command on the cli
 			fmt.Printf("Run\ngit clone --branch %s %s %s\n", latest.TagName, lurl, target)
 
 			cmd := exec.Command("git", "clone", "--branch", latest.TagName, lurl, target)
@@ -159,7 +162,21 @@ func DownloadSoftwareGithub(repo string, target string) error {
 			} else {
 				log.Println("Seems succesful", out.String())
 			}
+			*/
 
+			//fmt.Println(latest.TagName)
+			//https://github.com/src-d/go-git
+			_, err := git.PlainClone(target, false, &git.CloneOptions{
+				URL:           lurl,
+				ReferenceName: plumbing.NewTagReferenceName(latest.TagName),
+				SingleBranch:  true,
+				Progress:      os.Stdout,
+			})
+			if err == nil {
+				fmt.Println("Succesful clone")
+			} else {
+				fmt.Println("Error cloning", err)
+			}
 		} else {
 			fmt.Println(err)
 		}
@@ -195,7 +212,8 @@ func SetupWizard() error {
 		installdir = varwww
 	}
 
-	if Confirm(fmt.Sprintf("Do you want me to download the latest version to %s. It does require the git command to be installed (type y) : ", installdir), scanner) {
+	//if Confirm(fmt.Sprintf("Do you want me to download the latest version to %s. It does require the git command to be installed (type y) : ", installdir), scanner) {
+	if Confirm(fmt.Sprintf("Do you want me to download the latest version to %s.(type y) : ", installdir), scanner) {
 		DownloadSoftware(installdir)
 	}
 

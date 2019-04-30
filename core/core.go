@@ -112,13 +112,12 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 		timenowu := time.Now().Unix()
 		timenowatserver := timenowu + c.serverskew
 		remaining := c.lifetime - timenowatserver
-		delayRefreshUntil := int64(3550)
+		delayRefreshUntil := int64(600)
 		deadline := int64(15)
 
 		if remaining > delayRefreshUntil && c.token != "" {
 			//log.Println("Trying ", c.token)
 			authed, rerr = c.tokenAuthentication(askpassword)
-
 		} else if remaining > deadline {
 			if doRenew {
 				//refresh token because we want to be kept up to date

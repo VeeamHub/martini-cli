@@ -23,26 +23,35 @@ func GetTenantCommands() *cli.Command {
 				Aliases: []string{"c"},
 				Usage:   "create tenant",
 				Action: func(c *cli.Context) error {
-					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth(nil, false)
+					err := ValidateArray([]ValidString{
+						ValidString{c.String("tenant"), "tenant", "."},
+						ValidString{c.String("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
+						ValidString{c.String("fqdn"), "fqdn", `.`},
+						ValidString{c.String("port"), "port", `[0-9]+`},
+						ValidString{c.String("username"), "username", `.`},
+					})
 					if err == nil {
-						pw := c.String("password")
-						if pw == "" {
-							fmt.Print("Enter tenant server password: ")
-							dbbytePassword, errp := terminal.ReadPassword(int(syscall.Stdin))
-							for errp != nil || len(string(dbbytePassword)) < 3 {
-								fmt.Println()
-								fmt.Print("Password can not be empty (min 3 char):")
-								dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
+						conn := core.NewConnectionFromCLIContext(c)
+						err = conn.Auth(nil, false)
+						if err == nil {
+							pw := c.String("password")
+							if pw == "" {
+								fmt.Print("Enter tenant server password: ")
+								dbbytePassword, errp := terminal.ReadPassword(int(syscall.Stdin))
+								for errp != nil || len(string(dbbytePassword)) < 3 {
+									fmt.Println()
+									fmt.Print("Password can not be empty (min 3 char):")
+									dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
+								}
+								pw = string(dbbytePassword)
 							}
-							pw = string(dbbytePassword)
-						}
 
-						t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), c.String("fqdn"), c.String("username"), pw, "-1"}
+							t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), c.String("fqdn"), c.String("port"), c.String("username"), pw, "-1"}
 
-						err = t.Create(conn)
-						if err != nil {
-							log.Println("Error ", err)
+							err = t.Create(conn)
+							if err != nil {
+								log.Println("Error ", err)
+							}
 						}
 					}
 					return err
@@ -62,6 +71,11 @@ func GetTenantCommands() *cli.Command {
 						Name:  "fqdn, f",
 						Value: "",
 						Usage: "FQDN instance",
+					},
+					cli.StringFlag{
+						Name:  "port",
+						Value: "4443",
+						Usage: "FQDN port",
 					},
 					cli.StringFlag{
 						Name:  "username, u",
@@ -85,15 +99,30 @@ func GetTenantCommands() *cli.Command {
 						Aliases: []string{"a"},
 						Usage:   "deploy an amazon EC2 container",
 						Action: func(c *cli.Context) error {
-							return nil
+							var err error
+
+							err = ValidateArray([]ValidString{
+								ValidString{c.GlobalString("tenant"), "tenant", "."},
+								ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
+								ValidString{c.String("region"), "region", `.`},
+							})
+							if err == nil {
+								conn := core.NewConnectionFromCLIContext(c)
+								err = conn.Auth(nil, false)
+								if err == nil {
+									t := tenant.NewAWSConfig(c.GlobalString("tenant"), c.GlobalString("email"), c.String("region"))
+
+									err = t.Deploy(conn)
+								}
+							}
+							return err
 						},
-					},
-					{
-						Name:    "vsphere",
-						Aliases: []string{"v"},
-						Usage:   "deploy an vsphere container",
-						Action: func(c *cli.Context) error {
-							return nil
+						Flags: []cli.Flag{
+							cli.StringFlag{
+								Name:  "region",
+								Value: "",
+								Usage: "AWS Region",
+							},
 						},
 					},
 				},
@@ -108,21 +137,6 @@ func GetTenantCommands() *cli.Command {
 						Value: "",
 						Usage: "Email",
 					},
-					cli.StringFlag{
-						Name:  "fqdn, f",
-						Value: "",
-						Usage: "FQDN instance",
-					},
-					cli.StringFlag{
-						Name:  "username, u",
-						Value: "",
-						Usage: "Username instance",
-					},
-					cli.StringFlag{
-						Name:  "password, p",
-						Value: "",
-						Usage: "Password instance",
-					},
 				},
 			},
 			{
@@ -135,11 +149,19 @@ func GetTenantCommands() *cli.Command {
 					if err == nil {
 						tenants, err := tenant.List(conn)
 						if err == nil {
-							fmt.Print("#####################################################################")
-							for _, t := range tenants {
-								fmt.Printf("\n| %5s | %15s | %25s | %30s | %25s |", t.Id, t.Name, t.Email, t.Instancefqdn, t.Instanceusername)
+
+							for i := 0; i < 12; i++ {
+								fmt.Print("##########")
 							}
-							fmt.Println("\n#####################################################################")
+
+							for _, t := range tenants {
+								fmt.Printf("\n| %5s | %15s | %29s | %30s | %25s |", t.Id, t.Name, t.Email, t.Instancefqdn, t.Instanceusername)
+							}
+							fmt.Print("\n")
+							for i := 0; i < 12; i++ {
+								fmt.Print("##########")
+							}
+							fmt.Print("\n")
 						} else {
 							fmt.Println(err)
 						}

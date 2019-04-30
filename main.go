@@ -120,6 +120,7 @@ func main() {
 			},
 		},
 		*commands.GetTenantCommands(),
+		*commands.GetJobCommands(),
 	}
 
 	app.Flags = []cli.Flag{
