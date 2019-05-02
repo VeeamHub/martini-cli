@@ -78,6 +78,33 @@ func Delete(conn *core.Connection, id string) error {
 	return err
 }
 
+type BrokerType struct {
+	Id       string `json:"id"`
+	Clientip string `json:"clientip,omitempty"`
+}
+
+func Broker(conn *core.Connection, id string, clientip string) error {
+	var err error
+
+	b, _ := json.Marshal(BrokerType{id, clientip})
+
+	txt, sc, rerr := conn.Post("tenant/broker", b)
+	if rerr == nil {
+		if sc != 200 {
+			err = fmt.Errorf("Not valid return code %d on tenant delete; content %s", sc, txt)
+		} else {
+			txtstr := strings.TrimSpace(string(txt))
+			if txtstr != "" {
+				fmt.Println(txtstr)
+			}
+		}
+	} else {
+		err = rerr
+	}
+
+	return err
+}
+
 type MartiniDeploy struct {
 	Type   string      `json:"type"`
 	Name   string      `json:"name"`

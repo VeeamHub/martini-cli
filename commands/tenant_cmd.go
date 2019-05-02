@@ -192,6 +192,34 @@ func GetTenantCommands() *cli.Command {
 					},
 				},
 			},
+			{
+				Name:    "broker",
+				Aliases: []string{"b"},
+				Usage:   "broker an rdp connection via the martini server to a tenant",
+				Action: func(c *cli.Context) error {
+					conn := core.NewConnectionFromCLIContext(c)
+					err := conn.Auth(nil, false)
+					if err == nil {
+						err := tenant.Broker(conn, c.String("id"), c.String("clientip"))
+						if err != nil {
+							fmt.Println(err)
+						}
+					}
+					return err
+				},
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "id, i",
+						Value: "",
+						Usage: "Id of tenant",
+					},
+					cli.StringFlag{
+						Name:  "clientip, c",
+						Value: "",
+						Usage: "IP of your local break-out towards the server. If empty, the server will try to autodetect",
+					},
+				},
+			},
 			//more commands indent here
 		},
 	}
