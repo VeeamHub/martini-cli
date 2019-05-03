@@ -35,3 +35,28 @@ func ValidateArray(vss []ValidString) error {
 
 	return err
 }
+func ValidateOrArray(vsso [][]ValidString) error {
+	var err error
+
+	for i := 0; i < len(vsso) && err == nil; i = i + 1 {
+		var ferr error
+		foundnil := false
+		vss := vsso[i]
+		for j := 0; j < len(vss) && !foundnil; j++ {
+			v := vss[j].Validate()
+			if v != nil {
+				if ferr == nil {
+					ferr = v
+				}
+			} else {
+				foundnil = true
+			}
+		}
+		if !foundnil {
+			err = ferr
+		}
+	}
+
+	return err
+
+}

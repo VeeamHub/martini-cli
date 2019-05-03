@@ -91,7 +91,7 @@ func Broker(conn *core.Connection, id string, clientip string) error {
 	txt, sc, rerr := conn.Post("tenant/broker", b)
 	if rerr == nil {
 		if sc != 200 {
-			err = fmt.Errorf("Not valid return code %d on tenant delete; content %s", sc, txt)
+			err = fmt.Errorf("Not valid return code %d on tenant broker; content %s", sc, txt)
 		} else {
 			txtstr := strings.TrimSpace(string(txt))
 			if txtstr != "" {

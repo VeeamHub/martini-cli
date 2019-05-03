@@ -33,6 +33,13 @@ func GetCreateStatements() []NamedQuery {
 		id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 		keyval VARCHAR(100),
 		encryptedpassword VARCHAR(250)
+	);`, "SecureStore"}, NamedQuery{`	
+	CREATE TABLE martini_endpoint (
+		id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+		port int(7),
+		validuntil BIGINT,
+		pid BIGINT,
+		tenantid INT(6)
 	);`, "SecureStore"},
 	}
 }

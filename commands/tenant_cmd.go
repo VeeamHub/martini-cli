@@ -99,20 +99,27 @@ func GetTenantCommands() *cli.Command {
 						Aliases: []string{"a"},
 						Usage:   "deploy an amazon EC2 container",
 						Action: func(c *cli.Context) error {
-							var err error
-
-							err = ValidateArray([]ValidString{
-								ValidString{c.GlobalString("tenant"), "tenant", "."},
-								ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
-								ValidString{c.String("region"), "region", `.`},
+							err := ValidateArray([]ValidString{
+								ValidString{c.String("tenant"), "tenant", "."},
+								ValidString{c.String("tenant"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
+								ValidString{c.String("region"), "region", "."},
 							})
 							if err == nil {
-								conn := core.NewConnectionFromCLIContext(c)
-								err = conn.Auth(nil, false)
-								if err == nil {
-									t := tenant.NewAWSConfig(c.GlobalString("tenant"), c.GlobalString("email"), c.String("region"))
+								var err error
 
-									err = t.Deploy(conn)
+								err = ValidateArray([]ValidString{
+									ValidString{c.GlobalString("tenant"), "tenant", "."},
+									ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
+									ValidString{c.String("region"), "region", `.`},
+								})
+								if err == nil {
+									conn := core.NewConnectionFromCLIContext(c)
+									err = conn.Auth(nil, false)
+									if err == nil {
+										t := tenant.NewAWSConfig(c.GlobalString("tenant"), c.GlobalString("email"), c.String("region"))
+
+										err = t.Deploy(conn)
+									}
 								}
 							}
 							return err
@@ -174,12 +181,17 @@ func GetTenantCommands() *cli.Command {
 				Aliases: []string{"x"},
 				Usage:   "delete a tenant",
 				Action: func(c *cli.Context) error {
-					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth(nil, false)
+					err := ValidateArray([]ValidString{
+						ValidString{c.String("id"), "id (for tenant)", "."},
+					})
 					if err == nil {
-						err := tenant.Delete(conn, c.String("id"))
-						if err != nil {
-							fmt.Println(err)
+						conn := core.NewConnectionFromCLIContext(c)
+						err := conn.Auth(nil, false)
+						if err == nil {
+							err := tenant.Delete(conn, c.String("id"))
+							if err != nil {
+								fmt.Println(err)
+							}
 						}
 					}
 					return err
@@ -197,12 +209,37 @@ func GetTenantCommands() *cli.Command {
 				Aliases: []string{"b"},
 				Usage:   "broker an rdp connection via the martini server to a tenant",
 				Action: func(c *cli.Context) error {
-					conn := core.NewConnectionFromCLIContext(c)
-					err := conn.Auth(nil, false)
+					err := ValidateOrArray([][]ValidString{
+						[]ValidString{
+							ValidString{c.String("id"), "id (for tenant)", "."},
+							ValidString{c.String("name"), "name (for tenant)", "."},
+						},
+					})
 					if err == nil {
-						err := tenant.Broker(conn, c.String("id"), c.String("clientip"))
-						if err != nil {
-							fmt.Println(err)
+						conn := core.NewConnectionFromCLIContext(c)
+						err := conn.Auth(nil, false)
+						if err == nil {
+							tenantid := c.String("id")
+							if tenantid == "" {
+								tenantname := c.String("name")
+								tenants, err := tenant.List(conn)
+								if err == nil {
+									for _, t := range tenants {
+										if t.Name == tenantname {
+											tenantid = t.Id
+										}
+									}
+								}
+							}
+							if tenantid != "" {
+								err = tenant.Broker(conn, tenantid, c.String("clientip"))
+							} else {
+								err = fmt.Errorf("Was not able to resolve the tenant id. Try to use the id instead")
+							}
+							if err != nil {
+								fmt.Println(err)
+							}
+
 						}
 					}
 					return err
@@ -212,6 +249,11 @@ func GetTenantCommands() *cli.Command {
 						Name:  "id, i",
 						Value: "",
 						Usage: "Id of tenant",
+					},
+					cli.StringFlag{
+						Name:  "name, n",
+						Value: "",
+						Usage: "Name of the tenant",
 					},
 					cli.StringFlag{
 						Name:  "clientip, c",

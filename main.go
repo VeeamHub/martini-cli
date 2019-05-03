@@ -121,6 +121,7 @@ func main() {
 		},
 		*commands.GetTenantCommands(),
 		*commands.GetJobCommands(),
+		*commands.GetConfigCommands(),
 	}
 
 	app.Flags = []cli.Flag{
