@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/tdewin/martini-cli/config"
 	"github.com/tdewin/martini-cli/core"
 	"github.com/urfave/cli"
@@ -25,7 +27,8 @@ func GetConfigCommands() *cli.Command {
 								ValidString{c.String("port"), "port", "[0-9]+"},
 							})
 							if err == nil {
-								conn := core.NewConnectionFromCLIContext(c)
+								po := core.NewPrintOptionsFromCLIContext(c)
+								conn := core.NewConnectionFromCLIContext(&po, c)
 								err = conn.Auth(nil, false)
 								if err == nil {
 									err = config.BrokerAddPort(conn, c.String("port"))
@@ -49,7 +52,9 @@ func GetConfigCommands() *cli.Command {
 								ValidString{c.String("port"), "port", "[0-9]+"},
 							})
 							if err == nil {
-								conn := core.NewConnectionFromCLIContext(c)
+								po := core.NewPrintOptionsFromCLIContext(c)
+								conn := core.NewConnectionFromCLIContext(&po, c)
+
 								err = conn.Auth(nil, false)
 								if err == nil {
 									err = config.BrokerDeletePort(conn, c.String("port"))
@@ -63,6 +68,29 @@ func GetConfigCommands() *cli.Command {
 								Value: "",
 								Usage: "port",
 							},
+						},
+					},
+					{
+						Name:  "list",
+						Usage: "list ports",
+						Action: func(c *cli.Context) error {
+
+							po := core.NewPrintOptionsFromCLIContext(c)
+							conn := core.NewConnectionFromCLIContext(&po, c)
+
+							err := conn.Auth(nil, false)
+							if err == nil {
+								portlist, rerr := config.BrokerList(conn)
+								if rerr == nil {
+									for _, p := range portlist.PortList {
+										fmt.Println(p.Port)
+									}
+								} else {
+									err = rerr
+								}
+							}
+							return err
+
 						},
 					},
 				},

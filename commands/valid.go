@@ -17,8 +17,10 @@ func (v *ValidString) Validate() error {
 	if v.regex == "." && v.Input == "" {
 		err = (fmt.Errorf("%s can not be empty", v.name))
 	} else {
-		_, regerr := regexp.MatchString(v.regex, v.Input)
+		matched, regerr := regexp.MatchString(v.regex, v.Input)
 		if regerr != nil {
+			err = fmt.Errorf("%s is not accepted by parameter %s (regex %s)", v.Input, v.name, v.regex)
+		} else if !matched {
 			err = fmt.Errorf("%s is not accepted by parameter %s (regex %s)", v.Input, v.name, v.regex)
 		}
 	}
@@ -30,7 +32,9 @@ func ValidateArray(vss []ValidString) error {
 	var err error
 
 	for i := 0; i < len(vss) && err == nil; i = i + 1 {
+
 		err = vss[i].Validate()
+		//log.Println(vss[i].name, err, vss[i].Input)
 	}
 
 	return err

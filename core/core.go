@@ -16,15 +16,16 @@ import (
 )
 
 type Connection struct {
-	server     string
-	token      string
-	renew      string
-	lifetime   int64
-	username   string
-	password   string
-	ignoressc  bool
-	client     *http.Client
-	serverskew int64
+	server       string
+	token        string
+	renew        string
+	lifetime     int64
+	username     string
+	password     string
+	ignoressc    bool
+	client       *http.Client
+	serverskew   int64
+	PrintOptions *PrintOptions
 }
 
 func (c *Connection) GetToken() string {
@@ -51,19 +52,30 @@ func (c *Connection) MakeUrl(urlEnd string) string {
 func (c *Connection) Post(urlEnd string, json []byte) ([]byte, int, error) {
 	var body []byte
 	statuscode := -1
-	req, _ := http.NewRequest("POST", c.MakeUrl(urlEnd), bytes.NewReader(json))
+
+	uri := c.MakeUrl(urlEnd)
+	c.PrintOptions.Verbosef("Sending POST to %s %s", uri, string(json))
+
+	req, _ := http.NewRequest("POST", uri, bytes.NewReader(json))
 	req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
 
 	resp, err := c.client.Do(req)
 	statuscode = resp.StatusCode
 	if err == nil {
 		body, err = ioutil.ReadAll(resp.Body)
+		c.PrintOptions.Verbosef("(%d) %s", statuscode, string(body))
+	} else {
+		c.PrintOptions.Verbosef("Error code %v", err)
 	}
 	return body, statuscode, err
 }
 func (c *Connection) Get(urlEnd string) ([]byte, int, error) {
 	var body []byte
 	statuscode := -1
+
+	uri := c.MakeUrl(urlEnd)
+	c.PrintOptions.Verbosef("Sending GET to %s ", uri)
+
 	req, _ := http.NewRequest("GET", c.MakeUrl(urlEnd), nil)
 	req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
 
@@ -71,6 +83,9 @@ func (c *Connection) Get(urlEnd string) ([]byte, int, error) {
 	statuscode = resp.StatusCode
 	if err == nil {
 		body, err = ioutil.ReadAll(resp.Body)
+		c.PrintOptions.Verbosef("(%d) %s", statuscode, string(body))
+	} else {
+		c.PrintOptions.Verbosef("Error code %v", err)
 	}
 	return body, statuscode, err
 }
@@ -78,6 +93,8 @@ func (c *Connection) tokenAuthentication(askpassword func() string) (bool, error
 	authed := false
 	var err error
 	req, _ := http.NewRequest("GET", c.MakeUrl("login/heartbeat"), nil)
+
+	c.PrintOptions.Verbosef("Trying to heartbeat to login/heartbeat")
 
 	req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
 	resp, err := c.client.Do(req)
@@ -90,12 +107,14 @@ func (c *Connection) tokenAuthentication(askpassword func() string) (bool, error
 				if err == nil {
 					if hm.Status == "ok" {
 						authed = true
+						c.PrintOptions.Verbosef("Authenticated")
 					} else if hm.Status == "expired" {
-						log.Printf("expired token")
+						c.PrintOptions.Verbosef("Expired token")
 					}
 				}
 			}
-
+		} else {
+			c.PrintOptions.Verbosef("Failed heartbeat")
 		}
 	}
 	return authed, err
@@ -117,11 +136,12 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 
 		if remaining > delayRefreshUntil && c.token != "" {
 			//log.Println("Trying ", c.token)
+			c.PrintOptions.Verbosef("Trying token authentication")
 			authed, rerr = c.tokenAuthentication(askpassword)
 		} else if remaining > deadline {
 			if doRenew {
 				//refresh token because we want to be kept up to date
-
+				c.PrintOptions.Verbosef("Token is about to expire, renewing via login/renew")
 				req, _ := http.NewRequest("POST", c.MakeUrl("login/renew"), strings.NewReader(fmt.Sprintf("{\"renew\":\"%s\"}", c.renew)))
 				req.Header.Add("X-Authorization", fmt.Sprintf("bearer %s", c.token))
 				resp, err := c.client.Do(req)
@@ -139,21 +159,23 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 									c.lifetime = token.Lifetime
 									c.renew = token.Renew
 									c.serverskew = token.ServerTime - timenow.Unix()
-									//log.Println("reeeenewd!")
+									c.PrintOptions.Verbosef("Token is renewed")
 									authed = true
 								} else {
 									rerr = errors.New("Token is empty which should not happen. Are you sure this is a martini server")
+									c.PrintOptions.Verbosef("couldn't understand token %v", err)
 									//log.Printf("%v", rerr)
 								}
 							} else {
 								rerr = err
+								c.PrintOptions.Verbosef("couldn't understand token %v", err)
 								//log.Printf("%v", rerr)
 							}
 						}
 					}
 				}
 			} else {
-				log.Printf("Warning, token should be renewed soon! Rerun connect function if you are using config")
+				c.PrintOptions.Verbosef("You should renew your token soon")
 				authed, rerr = c.tokenAuthentication(askpassword)
 			}
 		}
@@ -161,6 +183,8 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 
 	//if we are not authed, our token is not fine so we should continue
 	if !authed {
+		c.PrintOptions.Verbosef("Was not able to authenticate via token, trying via regular admin procedure")
+
 		var login Login
 		login.Username = c.username
 
@@ -173,6 +197,7 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 		lbyte, _ := json.Marshal(login)
 		reader := bytes.NewReader(lbyte)
 		req, _ := http.NewRequest("POST", c.MakeUrl("login/create"), reader)
+		c.PrintOptions.Verbosef("Posting to login/create to make a new session")
 		resp, err := c.client.Do(req)
 
 		if err == nil {
@@ -192,27 +217,33 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 							authed = true
 						} else {
 							rerr = errors.New("Token is empty which should not happen. Are you sure this is a martini server")
+							c.PrintOptions.Verbosef("Error understanding token %v", err)
 						}
 					} else {
 						rerr = err
 					}
 				} else {
-					rerr = errors.New(fmt.Sprintf("Authentication failed, statuscode %d, body %s", resp.StatusCode, body))
+					rerr = fmt.Errorf("Authentication failed")
+					c.PrintOptions.Verbosef("Error understanding token statuscode %d, body %s", resp.StatusCode, body)
 				}
+			} else {
+				rerr = err
 			}
 		} else {
 			rerr = err
 		}
 
 	}
-
+	if !authed && rerr == nil {
+		rerr = fmt.Errorf("Authentication failed for unknown reason")
+	}
 	return rerr
 }
-func NewConnectionFromCLIContext(c *cli.Context) *Connection {
-	return NewConnection(c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
+func NewConnectionFromCLIContext(po *PrintOptions, c *cli.Context) *Connection {
+	return NewConnection(po, c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
 }
 
-func NewConnection(server string, token string, login string, password string, ignoressc bool, renew string, lifetime int64, serverskew int64) *Connection {
+func NewConnection(po *PrintOptions, server string, token string, login string, password string, ignoressc bool, renew string, lifetime int64, serverskew int64) *Connection {
 
 	if server == "" {
 		server = "https://localhost/api"
@@ -223,7 +254,30 @@ func NewConnection(server string, token string, login string, password string, i
 	tr := &http.Transport{}
 	if ignoressc {
 		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		po.Verbose("Ignoring Self Sign Certificate; Consider a real certificate")
 	}
-	c := Connection{server, token, renew, lifetime, login, password, ignoressc, &http.Client{Transport: tr}, serverskew}
+	c := Connection{server, token, renew, lifetime, login, password, ignoressc, &http.Client{Transport: tr}, serverskew, po}
 	return &c
+}
+
+type PrintOptions struct {
+	Json    bool
+	verbose bool
+}
+
+func (p *PrintOptions) Verbose(txt string) {
+	if p.verbose {
+		log.Print(txt)
+	}
+}
+func (p *PrintOptions) Verbosef(txt string, v ...interface{}) {
+	if p.verbose {
+		log.Printf(txt, v...)
+	}
+}
+func NewPrintOptionsFromCLIContext(c *cli.Context) PrintOptions {
+	return NewPrintOptions(c.GlobalBool("json"), c.GlobalBool("verbose"))
+}
+func NewPrintOptions(json bool, verbose bool) PrintOptions {
+	return PrintOptions{json, verbose}
 }

@@ -22,3 +22,10 @@ type ClientConfig struct {
 	Username   string
 	ServerSkew int64
 }
+
+//very generic return
+//can be used for error handling
+type ReturnStatus struct {
+	Status string `json:"status"`
+	Id     string `json:"id,omitempty"`
+}

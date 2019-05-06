@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"syscall"
 
 	"github.com/tdewin/martini-cli/core"
@@ -31,7 +30,8 @@ func GetTenantCommands() *cli.Command {
 						ValidString{c.String("username"), "username", `.`},
 					})
 					if err == nil {
-						conn := core.NewConnectionFromCLIContext(c)
+						po := core.NewPrintOptionsFromCLIContext(c)
+						conn := core.NewConnectionFromCLIContext(&po, c)
 						err = conn.Auth(nil, false)
 						if err == nil {
 							pw := c.String("password")
@@ -49,11 +49,10 @@ func GetTenantCommands() *cli.Command {
 							t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), c.String("fqdn"), c.String("port"), c.String("username"), pw, "-1"}
 
 							err = t.Create(conn)
-							if err != nil {
-								log.Println("Error ", err)
-							}
+
 						}
 					}
+
 					return err
 				},
 				Flags: []cli.Flag{
@@ -100,27 +99,21 @@ func GetTenantCommands() *cli.Command {
 						Usage:   "deploy an amazon EC2 container",
 						Action: func(c *cli.Context) error {
 							err := ValidateArray([]ValidString{
-								ValidString{c.String("tenant"), "tenant", "."},
-								ValidString{c.String("tenant"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
+								ValidString{c.GlobalString("tenant"), "tenant", "."},
+								ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
 								ValidString{c.String("region"), "region", "."},
 							})
 							if err == nil {
-								var err error
 
-								err = ValidateArray([]ValidString{
-									ValidString{c.GlobalString("tenant"), "tenant", "."},
-									ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
-									ValidString{c.String("region"), "region", `.`},
-								})
+								po := core.NewPrintOptionsFromCLIContext(c)
+								conn := core.NewConnectionFromCLIContext(&po, c)
+								err = conn.Auth(nil, false)
 								if err == nil {
-									conn := core.NewConnectionFromCLIContext(c)
-									err = conn.Auth(nil, false)
-									if err == nil {
-										t := tenant.NewAWSConfig(c.GlobalString("tenant"), c.GlobalString("email"), c.String("region"))
+									t := tenant.NewAWSConfig(c.GlobalString("tenant"), c.GlobalString("email"), c.String("region"))
 
-										err = t.Deploy(conn)
-									}
+									err = t.Deploy(conn)
 								}
+
 							}
 							return err
 						},
@@ -151,7 +144,8 @@ func GetTenantCommands() *cli.Command {
 				Aliases: []string{"l"},
 				Usage:   "list all tenants",
 				Action: func(c *cli.Context) error {
-					conn := core.NewConnectionFromCLIContext(c)
+					po := core.NewPrintOptionsFromCLIContext(c)
+					conn := core.NewConnectionFromCLIContext(&po, c)
 					err := conn.Auth(nil, false)
 					if err == nil {
 						tenants, err := tenant.List(conn)
@@ -185,7 +179,8 @@ func GetTenantCommands() *cli.Command {
 						ValidString{c.String("id"), "id (for tenant)", "."},
 					})
 					if err == nil {
-						conn := core.NewConnectionFromCLIContext(c)
+						po := core.NewPrintOptionsFromCLIContext(c)
+						conn := core.NewConnectionFromCLIContext(&po, c)
 						err := conn.Auth(nil, false)
 						if err == nil {
 							err := tenant.Delete(conn, c.String("id"))
@@ -216,28 +211,22 @@ func GetTenantCommands() *cli.Command {
 						},
 					})
 					if err == nil {
-						conn := core.NewConnectionFromCLIContext(c)
-						err := conn.Auth(nil, false)
+						po := core.NewPrintOptionsFromCLIContext(c)
+						conn := core.NewConnectionFromCLIContext(&po, c)
+						err = conn.Auth(nil, false)
 						if err == nil {
 							tenantid := c.String("id")
 							if tenantid == "" {
-								tenantname := c.String("name")
-								tenants, err := tenant.List(conn)
-								if err == nil {
-									for _, t := range tenants {
-										if t.Name == tenantname {
-											tenantid = t.Id
-										}
-									}
-								}
+								tenantid, err = tenant.Resolve(conn, c.String("name"))
 							}
-							if tenantid != "" {
-								err = tenant.Broker(conn, tenantid, c.String("clientip"))
+							if err == nil && tenantid != "" {
+								var bep tenant.MartiniBrokerEndpoint
+								bep, err = tenant.Broker(conn, tenantid, c.String("clientip"))
+								if err == nil {
+									fmt.Printf("Opened endpoint on %s (expecting ip %s)\n", bep.Port, bep.ExpectedClient)
+								}
 							} else {
 								err = fmt.Errorf("Was not able to resolve the tenant id. Try to use the id instead")
-							}
-							if err != nil {
-								fmt.Println(err)
 							}
 
 						}

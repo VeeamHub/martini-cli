@@ -13,7 +13,7 @@ type MartiniJob struct {
 	LastRun    string `json:"lastRun"`
 	LastStatus string `json:"lastStatus"`
 }
-type IDWrapper struct {
+type MartiniJobIdentification struct {
 	Id    string `json:"id,omitempty"`
 	JobId string `json:"jobid,omitempty"`
 	Data  string `json:"data,omitempty"`
@@ -23,12 +23,15 @@ func List(conn *core.Connection, instance string) ([]MartiniJob, error) {
 	var arr []MartiniJob
 	var err error
 
-	idjson, _ := json.Marshal(IDWrapper{Id: instance})
+	idjson, _ := json.Marshal(MartiniJobIdentification{Id: instance})
 
 	txt, sc, rerr := conn.Post("job/list", idjson)
 	if rerr == nil {
 		if sc != 200 {
-			err = fmt.Errorf("Not valid return code %d on job list; content %s", sc, txt)
+			rc := core.ReturnStatus{}
+			json.Unmarshal(txt, &rc)
+
+			err = fmt.Errorf("Not valid return code %d on job start; content [%s]", sc, rc.Status)
 		} else {
 			err = json.Unmarshal(txt, &arr)
 			if err != nil {
@@ -41,16 +44,40 @@ func List(conn *core.Connection, instance string) ([]MartiniJob, error) {
 
 	return arr, err
 }
+func Resolve(conn *core.Connection, instance string, jobname string) (string, error) {
+	//job.Resolve(conn, id, jobname)
+	var err error
+	var id = "-1"
+
+	jobs, rerr := List(conn, instance)
+	if rerr == nil {
+		for _, j := range jobs {
+			if j.Name == jobname {
+				id = j.Id
+			}
+		}
+	} else {
+		err = rerr
+	}
+	if id == "-1" {
+		err = fmt.Errorf("Was not able to resolve id for %s", jobname)
+	}
+
+	return id, err
+}
 
 func Start(conn *core.Connection, instance string, jobid string) error {
 	var err error
 
-	idjson, _ := json.Marshal(IDWrapper{Id: instance, JobId: jobid})
+	idjson, _ := json.Marshal(MartiniJobIdentification{Id: instance, JobId: jobid})
 
 	txt, sc, rerr := conn.Post("job/start", idjson)
 	if rerr == nil {
 		if sc != 200 {
-			err = fmt.Errorf("Not valid return code %d on job start; content %s", sc, txt)
+			rc := core.ReturnStatus{}
+			json.Unmarshal(txt, &rc)
+
+			err = fmt.Errorf("Not valid return code %d on job start; content [%s]", sc, rc.Status)
 		}
 	} else {
 		err = rerr

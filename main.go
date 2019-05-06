@@ -85,7 +85,8 @@ func main() {
 			Action: func(c *cli.Context) error {
 				var rerr error
 
-				conn := core.NewConnection(c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
+				po := core.NewPrintOptionsFromCLIContext(c)
+				conn := core.NewConnection(&po, c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
 				rerr = conn.Auth(func() string {
 					pw := ""
 					fmt.Print("Type in the admin password: ")
@@ -159,6 +160,11 @@ func main() {
 			Usage:  "Be verbose",
 			EnvVar: "MARTINICLI_VERBOSE",
 		},
+		/*cli.BoolFlag{
+			Name:   "json",
+			Usage:  "Pass json instead of printing",
+			EnvVar: "MARTINICLI_JSON",
+		},*/ //json dumping for later, let's already try to get a clean output first
 		cli.StringFlag{
 			Name:  "renewtoken",
 			Value: renewtokenDefault,
