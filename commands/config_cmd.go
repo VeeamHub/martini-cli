@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/tdewin/martini-cli/config"
 	"github.com/tdewin/martini-cli/core"
 	"github.com/urfave/cli"
@@ -83,7 +81,7 @@ func GetConfigCommands() *cli.Command {
 								portlist, rerr := config.BrokerList(conn)
 								if rerr == nil {
 									for _, p := range portlist.PortList {
-										fmt.Println(p.Port)
+										po.Println(p.Port)
 									}
 								} else {
 									err = rerr

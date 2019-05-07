@@ -152,19 +152,19 @@ func GetTenantCommands() *cli.Command {
 						if err == nil {
 
 							for i := 0; i < 12; i++ {
-								fmt.Print("##########")
+								po.Print("##########")
 							}
 
 							for _, t := range tenants {
-								fmt.Printf("\n| %5s | %15s | %29s | %30s | %25s |", t.Id, t.Name, t.Email, t.Instancefqdn, t.Instanceusername)
+								po.Printf("\n| %5s | %15s | %29s | %30s | %25s |", t.Id, t.Name, t.Email, t.Instancefqdn, t.Instanceusername)
 							}
-							fmt.Print("\n")
+							po.Print("\n")
 							for i := 0; i < 12; i++ {
-								fmt.Print("##########")
+								po.Print("##########")
 							}
-							fmt.Print("\n")
-						} else {
-							fmt.Println(err)
+							po.Print("\n")
+
+							po.MarshalPrintJSON(tenants)
 						}
 					}
 					return err
@@ -181,12 +181,10 @@ func GetTenantCommands() *cli.Command {
 					if err == nil {
 						po := core.NewPrintOptionsFromCLIContext(c)
 						conn := core.NewConnectionFromCLIContext(&po, c)
-						err := conn.Auth(nil, false)
+						err = conn.Auth(nil, false)
 						if err == nil {
-							err := tenant.Delete(conn, c.String("id"))
-							if err != nil {
-								fmt.Println(err)
-							}
+							err = tenant.Delete(conn, c.String("id"))
+
 						}
 					}
 					return err
@@ -223,7 +221,8 @@ func GetTenantCommands() *cli.Command {
 								var bep tenant.MartiniBrokerEndpoint
 								bep, err = tenant.Broker(conn, tenantid, c.String("clientip"))
 								if err == nil {
-									fmt.Printf("Opened endpoint on %s (expecting ip %s)\n", bep.Port, bep.ExpectedClient)
+									po.Printf("Opened endpoint on %s (expecting ip %s)\n", bep.Port, bep.ExpectedClient)
+									po.MarshalPrintJSON(bep)
 								}
 							} else {
 								err = fmt.Errorf("Was not able to resolve the tenant id. Try to use the id instead")

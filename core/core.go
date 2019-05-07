@@ -275,6 +275,35 @@ func (p *PrintOptions) Verbosef(txt string, v ...interface{}) {
 		log.Printf(txt, v...)
 	}
 }
+
+func (p *PrintOptions) Println(a ...interface{}) {
+	if !p.Json {
+		fmt.Println(a...)
+	}
+}
+func (p *PrintOptions) Print(txt string) {
+	if !p.Json {
+		fmt.Print(txt)
+	}
+}
+func (p *PrintOptions) Printf(txt string, v ...interface{}) {
+	if !p.Json {
+		fmt.Printf(txt, v...)
+	}
+}
+
+func (p *PrintOptions) PrintJSON(txt string) {
+	if p.Json {
+		fmt.Println(txt)
+	}
+}
+func (p *PrintOptions) MarshalPrintJSON(m interface{}) {
+	if p.Json {
+		txt, _ := json.Marshal(m)
+		fmt.Println(string(txt))
+	}
+}
+
 func NewPrintOptionsFromCLIContext(c *cli.Context) PrintOptions {
 	return NewPrintOptions(c.GlobalBool("json"), c.GlobalBool("verbose"))
 }

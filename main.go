@@ -123,6 +123,7 @@ func main() {
 		*commands.GetTenantCommands(),
 		*commands.GetJobCommands(),
 		*commands.GetConfigCommands(),
+		*commands.GetLicenseCommands(),
 	}
 
 	app.Flags = []cli.Flag{
@@ -160,11 +161,11 @@ func main() {
 			Usage:  "Be verbose",
 			EnvVar: "MARTINICLI_VERBOSE",
 		},
-		/*cli.BoolFlag{
+		cli.BoolFlag{
 			Name:   "json",
 			Usage:  "Pass json instead of printing",
 			EnvVar: "MARTINICLI_JSON",
-		},*/ //json dumping for later, let's already try to get a clean output first
+		},
 		cli.StringFlag{
 			Name:  "renewtoken",
 			Value: renewtokenDefault,

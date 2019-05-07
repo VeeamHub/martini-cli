@@ -38,7 +38,21 @@ func (m *MartiniTenant) Create(conn *core.Connection) error {
 
 	return err
 }
+func Mappings(conn *core.Connection) (map[string]string, map[string]string, error) {
+	tenants, err := List(conn)
 
+	var idtoname map[string]string
+	var nametoid map[string]string
+
+	idtoname = make(map[string]string)
+	nametoid = make(map[string]string)
+
+	for _, t := range tenants {
+		idtoname[t.Id] = t.Name
+		nametoid[t.Name] = t.Id
+	}
+	return idtoname, nametoid, err
+}
 func List(conn *core.Connection) ([]MartiniTenant, error) {
 	var arr []MartiniTenant
 	var err error

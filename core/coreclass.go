@@ -29,3 +29,10 @@ type ReturnStatus struct {
 	Status string `json:"status"`
 	Id     string `json:"id,omitempty"`
 }
+
+//very generic send option
+type SendID struct {
+	Id     string `json:"id,omitempty"`
+	Action string `json:"action,omitempty"`
+	Data   string `json:"data,omitempty"`
+}
