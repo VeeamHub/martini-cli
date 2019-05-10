@@ -94,6 +94,30 @@ func List(conn *core.Connection, tenantid string) ([]MartiniInstance, error) {
 	return arr, err
 }
 
+func ListOrphans(conn *core.Connection) ([]MartiniInstance, error) {
+	var arr []MartiniInstance
+	var err error
+
+	txt, sc, rerr := conn.Get("instance/listorphans")
+	if rerr == nil {
+		if sc != 200 {
+			rc := core.ReturnStatus{}
+			json.Unmarshal(txt, &rc)
+
+			err = fmt.Errorf("Not valid return code %d on instance list; content [%s]", sc, rc.Status)
+		} else {
+			err = json.Unmarshal(txt, &arr)
+			if err != nil {
+				err = fmt.Errorf("Unexpected output server on instance list %s (%v)", txt, err)
+			}
+		}
+	} else {
+		err = rerr
+	}
+
+	return arr, err
+}
+
 type BrokerType struct {
 	Id       string `json:"id"`
 	Clientip string `json:"clientip,omitempty"`
@@ -124,4 +148,25 @@ func Broker(conn *core.Connection, id string, clientip string) (MartiniBrokerEnd
 	}
 
 	return brokerendpoint, err
+}
+
+func Delete(conn *core.Connection, id string) error {
+	var err error
+	returnstatus := core.ReturnStatus{}
+	//json.Unmarshal(txt, returnstatus)
+	//err = fmt.Errorf("Not valid return code %d on tenant create %s", sc, returnstatus.Status)
+
+	b, _ := json.Marshal(core.SendID{Id: id})
+
+	txt, sc, rerr := conn.Post("instance/delete", b)
+	if rerr == nil {
+		json.Unmarshal(txt, &returnstatus)
+		if sc != 200 {
+			err = fmt.Errorf("Not valid return code %d on instance delete [%s]", sc, returnstatus.Status)
+		}
+	} else {
+		err = rerr
+	}
+
+	return err
 }

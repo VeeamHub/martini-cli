@@ -194,19 +194,22 @@ func GetTenantCommands() *cli.Command {
 				Aliases: []string{"x"},
 				Usage:   "delete a tenant (does not delete the instances)",
 				Action: func(c *cli.Context) error {
+					po := core.NewPrintOptionsFromCLIContext(c)
+					rs := core.ReturnStatus{Status: "not deleted"}
 					err := ValidateArray([]ValidString{
 						ValidString{c.String("id"), "id (for tenant)", "."},
 					})
 					if err == nil {
-						po := core.NewPrintOptionsFromCLIContext(c)
+
 						conn := core.NewConnectionFromCLIContext(&po, c)
 						err = conn.Auth(nil, false)
 						if err == nil {
 							err = tenant.Delete(conn, c.String("id"))
-
+							rs.Status = "Deleted from db tenant"
+							rs.Id = c.String("id")
 						}
 					}
-					return err
+					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
 					cli.StringFlag{

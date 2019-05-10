@@ -84,7 +84,9 @@ func Delete(conn *core.Connection, id string) error {
 	//json.Unmarshal(txt, returnstatus)
 	//err = fmt.Errorf("Not valid return code %d on tenant create %s", sc, returnstatus.Status)
 
-	txt, sc, rerr := conn.Post("tenant/delete", []byte(fmt.Sprintf("{\"id\":\"%s\"}", id)))
+	b, _ := json.Marshal(core.SendID{Id: id})
+
+	txt, sc, rerr := conn.Post("tenant/delete", b)
 	if rerr == nil {
 		json.Unmarshal(txt, &returnstatus)
 		if sc != 200 {

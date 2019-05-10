@@ -80,6 +80,21 @@ func GetInstanceCommands() *cli.Command {
 											allerrors = append(allerrors, fmt.Sprintf("### Error Tenant ID %s %v", id, e))
 										}
 									}
+
+									if c.Bool("showorphans") {
+										instancearray, e := instance.ListOrphans(conn)
+										if e == nil {
+											po.Println("####### Orphans")
+
+											for _, instance := range instancearray {
+												po.Println(instance.Id, instance.Name, instance.Hostname, instance.Type, instance.Location)
+											}
+											t := MartiniInstanceTenant{"<orphan>", "<orphan>", instancearray}
+											allinstances = append(allinstances, t)
+										} else {
+											allerrors = append(allerrors, fmt.Sprintf("### Error Orphans %v", e))
+										}
+									}
 									if len(allerrors) > 0 {
 										err = errors.New(strings.Join(allerrors, "\n"))
 									}
@@ -100,6 +115,10 @@ func GetInstanceCommands() *cli.Command {
 						Value: "all",
 						Usage: "Id of tenant",
 					},
+					cli.BoolFlag{
+						Name:  "showorphans",
+						Usage: "by default orphans are not shown",
+					},
 					cli.StringFlag{
 						Name:  "name, n",
 						Value: "",
@@ -107,6 +126,38 @@ func GetInstanceCommands() *cli.Command {
 					},
 				},
 			},
+			{
+				Name:    "delete",
+				Aliases: []string{"x"},
+				Usage:   "delete an instance (will clean it up)",
+				Action: func(c *cli.Context) error {
+					po := core.NewPrintOptionsFromCLIContext(c)
+					rs := core.ReturnStatus{Status: "not deleted"}
+
+					err := ValidateArray([]ValidString{
+						ValidString{c.String("id"), "id (for instance)", "."},
+					})
+					if err == nil {
+
+						conn := core.NewConnectionFromCLIContext(&po, c)
+						err = conn.Auth(nil, false)
+						if err == nil {
+							err = instance.Delete(conn, c.String("id"))
+							rs.Status = "Set for deletion in db"
+							rs.Id = c.String("id")
+						}
+					}
+					return po.MarshalPrintJSONError(rs, err)
+				},
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "id, i",
+						Value: "",
+						Usage: "Id of tenant",
+					},
+				},
+			},
+
 			{
 				Name:    "broker",
 				Aliases: []string{"b"},
