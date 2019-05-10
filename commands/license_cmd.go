@@ -1,14 +1,33 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/tdewin/martini-cli/instance"
 	"github.com/tdewin/martini-cli/licensemgmt"
 
 	"github.com/tdewin/martini-cli/core"
 	"github.com/tdewin/martini-cli/tenant"
 	"github.com/urfave/cli"
 )
+
+type MartiniLicenseUserInstance struct {
+	TenantId     string                           `json:"tenantid"`
+	TenantName   string                           `json:"tenantname"`
+	InstanceId   string                           `json:"instanceid"`
+	InstanceName string                           `json:"instancename"`
+	LicenseUsers []licensemgmt.MartiniLicenseUser `json:"licenseusers"`
+}
+
+type MartiniLicenseInfoInstance struct {
+	TenantId     string                           `json:"tenantid"`
+	TenantName   string                           `json:"tenantname"`
+	InstanceId   string                           `json:"instanceid"`
+	InstanceName string                           `json:"instancename"`
+	LicenseInfos []licensemgmt.MartiniLicenseInfo `json:"licenseinfos"`
+}
 
 func GetLicenseCommands() *cli.Command {
 	return &cli.Command{
@@ -21,6 +40,8 @@ func GetLicenseCommands() *cli.Command {
 				Aliases: []string{"lu"},
 				Usage:   "list users",
 				Action: func(c *cli.Context) error {
+					po := core.NewPrintOptionsFromCLIContext(c)
+					allLicenseUserInstances := []MartiniLicenseUserInstance{}
 					err := ValidateOrArray([][]ValidString{
 						[]ValidString{
 							ValidString{c.String("id"), "id (for tenant)", "."},
@@ -28,7 +49,7 @@ func GetLicenseCommands() *cli.Command {
 						},
 					})
 					if err == nil {
-						po := core.NewPrintOptionsFromCLIContext(c)
+
 						conn := core.NewConnectionFromCLIContext(&po, c)
 						err = conn.Auth(nil, false)
 						if err == nil {
@@ -54,18 +75,31 @@ func GetLicenseCommands() *cli.Command {
 									ids = append(ids, id)
 								}
 								if err == nil {
+									var allerrors []string
+
 									for _, id := range ids {
-										licensearray, e := licensemgmt.ListUsers(conn, id)
-										if e == nil {
+										instances, rerr := instance.List(conn, id)
+										if rerr == nil {
+											for _, instance := range instances {
+												licensearray, e := licensemgmt.ListUsers(conn, instance.Id)
+												if e == nil {
 
-											for _, l := range licensearray {
-												po.Printf("%-15s | %-20s | %-35s | %25s\n", idtoname[id], l.OrganizationName, l.Name, l.LastBackupDate)
+													for _, l := range licensearray {
+														po.Printf("%-15s | %-6s | %-20s | %-35s | %25s\n", idtoname[id], instance.Id, l.OrganizationName, l.Name, l.LastBackupDate)
+
+													}
+													allLicenseUserInstances = append(allLicenseUserInstances, MartiniLicenseUserInstance{id, idtoname[id], instance.Id, instance.Name, licensearray})
+
+												} else {
+													allerrors = append(allerrors, fmt.Sprintf("### Error Instance id %s %v", instance.Id, e))
+												}
 											}
-											po.MarshalPrintJSON(licensearray)
-
 										} else {
-											err = fmt.Errorf("### Error Tenant ID %s %v", id, e)
+											allerrors = append(allerrors, fmt.Sprintf("### Error Listinge tenant id %s %v", id, rerr))
 										}
+									}
+									if len(allerrors) > 0 {
+										err = errors.New(strings.Join(allerrors, "\n"))
 									}
 								}
 							} else {
@@ -73,7 +107,7 @@ func GetLicenseCommands() *cli.Command {
 							}
 						}
 					}
-					return err
+					return po.MarshalPrintJSONError(allLicenseUserInstances, err)
 				},
 				Flags: []cli.Flag{
 					cli.StringFlag{
@@ -93,6 +127,8 @@ func GetLicenseCommands() *cli.Command {
 				Aliases: []string{"li"},
 				Usage:   "list info",
 				Action: func(c *cli.Context) error {
+					allLicenseInfoInstances := []MartiniLicenseInfoInstance{}
+					po := core.NewPrintOptionsFromCLIContext(c)
 					err := ValidateOrArray([][]ValidString{
 						[]ValidString{
 							ValidString{c.String("id"), "id (for tenant)", "."},
@@ -100,7 +136,7 @@ func GetLicenseCommands() *cli.Command {
 						},
 					})
 					if err == nil {
-						po := core.NewPrintOptionsFromCLIContext(c)
+
 						conn := core.NewConnectionFromCLIContext(&po, c)
 						err = conn.Auth(nil, false)
 						if err == nil {
@@ -126,17 +162,31 @@ func GetLicenseCommands() *cli.Command {
 									ids = append(ids, id)
 								}
 								if err == nil {
-									for _, id := range ids {
-										licensearray, e := licensemgmt.ListInfo(conn, id)
-										if e == nil {
-											for _, l := range licensearray {
+									var allerrors []string
 
-												po.Printf("%-15s | %-25s | %6d | %6d\n", idtoname[id], l.OrgName, l.LicensedUsers, l.NewUsers)
+									for _, id := range ids {
+										instances, rerr := instance.List(conn, id)
+										if rerr == nil {
+											for _, instance := range instances {
+												licensearray, e := licensemgmt.ListInfo(conn, instance.Id)
+												if e == nil {
+													for _, l := range licensearray {
+
+														po.Printf("%-15s | %-6s | %-25s | %6d | %6d\n", idtoname[id], instance.Id, l.OrgName, l.LicensedUsers, l.NewUsers)
+														allLicenseInfoInstances = append(allLicenseInfoInstances, MartiniLicenseInfoInstance{id, idtoname[id], instance.Id, instance.Name, licensearray})
+													}
+
+												} else {
+
+													allerrors = append(allerrors, fmt.Sprintf("### Error Instance id %s %v", instance.Id, e))
+												}
 											}
-											po.MarshalPrintJSON(licensearray)
 										} else {
-											err = fmt.Errorf("### Error Tenant ID %s %v", id, e)
+											allerrors = append(allerrors, fmt.Sprintf("### Error Listinge tenant id %s %v", id, rerr))
 										}
+									}
+									if len(allerrors) > 0 {
+										err = errors.New(strings.Join(allerrors, "\n"))
 									}
 								}
 							} else {
@@ -144,7 +194,7 @@ func GetLicenseCommands() *cli.Command {
 							}
 						}
 					}
-					return err
+					return po.MarshalPrintJSONError(allLicenseInfoInstances, err)
 				},
 				Flags: []cli.Flag{
 					cli.StringFlag{

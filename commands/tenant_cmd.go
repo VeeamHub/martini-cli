@@ -5,6 +5,7 @@ import (
 	"syscall"
 
 	"github.com/tdewin/martini-cli/core"
+	"github.com/tdewin/martini-cli/instance"
 	"github.com/tdewin/martini-cli/tenant"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
@@ -25,35 +26,48 @@ func GetTenantCommands() *cli.Command {
 					err := ValidateArray([]ValidString{
 						ValidString{c.String("tenant"), "tenant", "."},
 						ValidString{c.String("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
-						ValidString{c.String("fqdn"), "fqdn", `.`},
-						ValidString{c.String("port"), "port", `[0-9]+`},
-						ValidString{c.String("username"), "username", `.`},
+						ValidString{c.String("port"), "port", `[0-9]*`},
 					})
+					po := core.NewPrintOptionsFromCLIContext(c)
+					rs := core.ReturnStatus{Status: "Nothing done (check error)", Id: "-1", SubId: "-1"}
 					if err == nil {
-						po := core.NewPrintOptionsFromCLIContext(c)
+
 						conn := core.NewConnectionFromCLIContext(&po, c)
 						err = conn.Auth(nil, false)
 						if err == nil {
-							pw := c.String("password")
-							if pw == "" {
-								fmt.Print("Enter tenant server password: ")
-								dbbytePassword, errp := terminal.ReadPassword(int(syscall.Stdin))
-								for errp != nil || len(string(dbbytePassword)) < 3 {
-									fmt.Println()
-									fmt.Print("Password can not be empty (min 3 char):")
-									dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
-								}
-								pw = string(dbbytePassword)
-							}
-
-							t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), c.String("fqdn"), c.String("port"), c.String("username"), pw, "-1"}
-
+							t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), "-1", "-1"}
 							err = t.Create(conn)
+							rs.Status = "tenant created"
+							rs.Id = t.Id
+							if c.String("fqdn") != "" {
+								if t.Id != "-1" && t.Id != "" {
+									pw := c.String("password")
+									if pw == "" {
+										fmt.Print("Enter tenant server password: ")
+										dbbytePassword, errp := terminal.ReadPassword(int(syscall.Stdin))
+										for errp != nil || len(string(dbbytePassword)) < 3 {
+											fmt.Println()
+											fmt.Print("Password can not be empty (min 3 char):")
+											dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
+										}
+										pw = string(dbbytePassword)
+									}
+									i := instance.MartiniInstance{Name: fmt.Sprintf("%s-%s", t.Name, c.String("fqdn")), TenantId: t.Id, Type: "Manual", Status: "-1", Location: c.String("location"), Hostname: c.String("fqdn"), Port: c.String("port"),
+										Username: c.String("username"), Password: pw}
+									err = i.Create(conn)
+									if err == nil {
+										rs.Status = "tenant created and instance added"
+										rs.SubId = i.Id
+									}
+								} else {
+									err = fmt.Errorf("Tenant creation did not yield tenant id")
+								}
+							}
 
 						}
 					}
 
-					return err
+					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
 					cli.StringFlag{
@@ -85,6 +99,11 @@ func GetTenantCommands() *cli.Command {
 						Name:  "password, p",
 						Value: "",
 						Usage: "Password instance",
+					},
+					cli.StringFlag{
+						Name:  "location",
+						Value: "unknown",
+						Usage: "Username instance",
 					},
 				},
 			},
@@ -151,15 +170,15 @@ func GetTenantCommands() *cli.Command {
 						tenants, err := tenant.List(conn)
 						if err == nil {
 
-							for i := 0; i < 12; i++ {
+							for i := 0; i < 10; i++ {
 								po.Print("##########")
 							}
 
 							for _, t := range tenants {
-								po.Printf("\n| %5s | %15s | %29s | %30s | %25s |", t.Id, t.Name, t.Email, t.Instancefqdn, t.Instanceusername)
+								po.Printf("\n| %5s | %20s | %30s | %15s |", t.Id, t.Name, t.Email, t.Registered)
 							}
 							po.Print("\n")
-							for i := 0; i < 12; i++ {
+							for i := 0; i < 10; i++ {
 								po.Print("##########")
 							}
 							po.Print("\n")
@@ -173,7 +192,7 @@ func GetTenantCommands() *cli.Command {
 			{
 				Name:    "delete",
 				Aliases: []string{"x"},
-				Usage:   "delete a tenant",
+				Usage:   "delete a tenant (does not delete the instances)",
 				Action: func(c *cli.Context) error {
 					err := ValidateArray([]ValidString{
 						ValidString{c.String("id"), "id (for tenant)", "."},
@@ -197,59 +216,7 @@ func GetTenantCommands() *cli.Command {
 					},
 				},
 			},
-			{
-				Name:    "broker",
-				Aliases: []string{"b"},
-				Usage:   "broker an rdp connection via the martini server to a tenant",
-				Action: func(c *cli.Context) error {
-					err := ValidateOrArray([][]ValidString{
-						[]ValidString{
-							ValidString{c.String("id"), "id (for tenant)", "."},
-							ValidString{c.String("name"), "name (for tenant)", "."},
-						},
-					})
-					if err == nil {
-						po := core.NewPrintOptionsFromCLIContext(c)
-						conn := core.NewConnectionFromCLIContext(&po, c)
-						err = conn.Auth(nil, false)
-						if err == nil {
-							tenantid := c.String("id")
-							if tenantid == "" {
-								tenantid, err = tenant.Resolve(conn, c.String("name"))
-							}
-							if err == nil && tenantid != "" {
-								var bep tenant.MartiniBrokerEndpoint
-								bep, err = tenant.Broker(conn, tenantid, c.String("clientip"))
-								if err == nil {
-									po.Printf("Opened endpoint on %s (expecting ip %s)\n", bep.Port, bep.ExpectedClient)
-									po.MarshalPrintJSON(bep)
-								}
-							} else {
-								err = fmt.Errorf("Was not able to resolve the tenant id. Try to use the id instead")
-							}
 
-						}
-					}
-					return err
-				},
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "id, i",
-						Value: "",
-						Usage: "Id of tenant",
-					},
-					cli.StringFlag{
-						Name:  "name, n",
-						Value: "",
-						Usage: "Name of the tenant",
-					},
-					cli.StringFlag{
-						Name:  "clientip, c",
-						Value: "",
-						Usage: "IP of your local break-out towards the server. If empty, the server will try to autodetect",
-					},
-				},
-			},
 			//more commands indent here
 		},
 	}

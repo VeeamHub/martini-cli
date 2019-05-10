@@ -292,15 +292,27 @@ func (p *PrintOptions) Printf(txt string, v ...interface{}) {
 	}
 }
 
-func (p *PrintOptions) PrintJSON(txt string) {
-	if p.Json {
-		fmt.Println(txt)
-	}
-}
+//temporary, please use error pass through
 func (p *PrintOptions) MarshalPrintJSON(m interface{}) {
+	p.MarshalPrintJSONError(m, nil)
+}
+
+type JSONOut struct {
+	Error string      `json:"error"`
+	Data  interface{} `json:"data"`
+}
+
+func (p *PrintOptions) MarshalPrintJSONError(m interface{}, err error) error {
 	if p.Json {
-		txt, _ := json.Marshal(m)
+		errtxt := ""
+		if err != nil {
+			errtxt = err.Error()
+		}
+		txt, _ := json.Marshal(JSONOut{errtxt, m})
 		fmt.Println(string(txt))
+		return nil
+	} else {
+		return err
 	}
 }
 

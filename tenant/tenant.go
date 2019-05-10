@@ -3,18 +3,16 @@ package tenant
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/tdewin/martini-cli/core"
 )
 
 type MartiniTenant struct {
-	Name             string `json:"name"`
-	Email            string `json:"email"`
-	Instancefqdn     string `json:"instancefqdn"`
-	Instanceport     string `json:"instanceport"`
-	Instanceusername string `json:"instanceusername"`
-	Instancepassword string `json:"instancepassword"`
-	Id               string `json:"id"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	Registered string `json:"registered"`
+	Id         string `json:"id"`
 }
 
 func (m *MartiniTenant) Create(conn *core.Connection) error {
@@ -26,10 +24,14 @@ func (m *MartiniTenant) Create(conn *core.Connection) error {
 		txt, sc, rerr := conn.Post("tenant/create", b)
 
 		if rerr == nil {
-			json.Unmarshal(txt, &returnstatus)
 
 			if sc != 200 {
 				err = fmt.Errorf("Not valid return code %d on tenant create [%s]", sc, returnstatus.Status)
+			} else {
+				rerr := json.Unmarshal(txt, &returnstatus)
+
+				log.Println("this is my status", returnstatus, "and this is what i got", string(txt), rerr)
+				m.Id = returnstatus.Id
 			}
 		} else {
 			err = rerr
@@ -109,38 +111,6 @@ func Resolve(conn *core.Connection, tenantname string) (string, error) {
 		err = fmt.Errorf("Could not find tenant with id %s", tenantname)
 	}
 	return tenantid, err
-}
-
-type BrokerType struct {
-	Id       string `json:"id"`
-	Clientip string `json:"clientip,omitempty"`
-}
-type MartiniBrokerEndpoint struct {
-	Id             string `json:"id"`
-	Status         string `json:"status"`
-	Port           string `json:"port,omitempty"`
-	ExpectedClient string `json:"expectedclient,omitempty"`
-}
-
-func Broker(conn *core.Connection, id string, clientip string) (MartiniBrokerEndpoint, error) {
-	var err error
-	brokerendpoint := MartiniBrokerEndpoint{}
-	b, _ := json.Marshal(BrokerType{id, clientip})
-
-	txt, sc, rerr := conn.Post("tenant/broker", b)
-	if rerr == nil {
-		je := json.Unmarshal(txt, &brokerendpoint)
-		if je != nil {
-			err = fmt.Errorf("Could not understand result; %v", txt)
-		}
-		if sc != 200 {
-			err = fmt.Errorf("Not valid return code %d on tenant broker; content %s", sc, brokerendpoint.Status)
-		}
-	} else {
-		err = rerr
-	}
-
-	return brokerendpoint, err
 }
 
 type MartiniDeploy struct {

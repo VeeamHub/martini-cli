@@ -121,6 +121,7 @@ func main() {
 			},
 		},
 		*commands.GetTenantCommands(),
+		*commands.GetInstanceCommands(),
 		*commands.GetJobCommands(),
 		*commands.GetConfigCommands(),
 		*commands.GetLicenseCommands(),

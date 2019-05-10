@@ -28,6 +28,7 @@ type ClientConfig struct {
 type ReturnStatus struct {
 	Status string `json:"status"`
 	Id     string `json:"id,omitempty"`
+	SubId  string `json:"subid,omitempty"`
 }
 
 //very generic send option

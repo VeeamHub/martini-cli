@@ -31,7 +31,7 @@ func List(conn *core.Connection, instance string) ([]MartiniJob, error) {
 			rc := core.ReturnStatus{}
 			json.Unmarshal(txt, &rc)
 
-			err = fmt.Errorf("Not valid return code %d on job start; content [%s]", sc, rc.Status)
+			err = fmt.Errorf("Not valid return code %d on job list; content [%s]", sc, rc.Status)
 		} else {
 			err = json.Unmarshal(txt, &arr)
 			if err != nil {
