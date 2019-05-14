@@ -52,6 +52,43 @@ func (i *MartiniInstance) Create(conn *core.Connection) error {
 	return err
 }
 
+type MartiniDeploy struct {
+	Id     string      `json:"id"`
+	Type   string      `json:"type"`
+	Config interface{} `json:"config"`
+}
+type MartiniAmazon struct {
+	Region string `json:"region"`
+}
+
+func NewAWSConfig(tenantid string, region string) *MartiniDeploy {
+	return &MartiniDeploy{tenantid, "aws", MartiniAmazon{region}}
+}
+
+func (m *MartiniDeploy) Deploy(conn *core.Connection) (string, error) {
+	b, err := json.Marshal(m)
+	returnstatus := core.ReturnStatus{}
+
+	id := "-1"
+	//json.Unmarshal(txt, returnstatus)
+	//err = fmt.Errorf("Not valid return code %d on tenant create %s", sc, returnstatus.Status)
+	if err == nil {
+		txt, sc, rerr := conn.Post("instance/deploy", b)
+		if rerr == nil {
+			json.Unmarshal(txt, &returnstatus)
+			if sc != 200 {
+				err = fmt.Errorf("Not valid return code %d on tenant deploy [%s]", sc, returnstatus.Status)
+			} else {
+				id = returnstatus.Id
+			}
+		} else {
+			err = rerr
+		}
+	}
+
+	return id, err
+}
+
 func Mappings(conn *core.Connection, tenantid string) (map[string]string, map[string]string, error) {
 	instances, err := List(conn, tenantid)
 
@@ -159,6 +196,32 @@ func Delete(conn *core.Connection, id string) error {
 	b, _ := json.Marshal(core.SendID{Id: id})
 
 	txt, sc, rerr := conn.Post("instance/delete", b)
+	if rerr == nil {
+		json.Unmarshal(txt, &returnstatus)
+		if sc != 200 {
+			err = fmt.Errorf("Not valid return code %d on instance delete [%s]", sc, returnstatus.Status)
+		}
+	} else {
+		err = rerr
+	}
+
+	return err
+}
+
+type AssignStruct struct {
+	NewTenantId string `json:"newtenantid"`
+	InstanceId  string `json:"instanceid"`
+}
+
+func Assign(conn *core.Connection, instanceid string, newtenantid string) error {
+	var err error
+	returnstatus := core.ReturnStatus{Status: "Error Init"}
+	//json.Unmarshal(txt, returnstatus)
+	//err = fmt.Errorf("Not valid return code %d on tenant create %s", sc, returnstatus.Status)
+
+	b, _ := json.Marshal(AssignStruct{newtenantid, instanceid})
+
+	txt, sc, rerr := conn.Post("instance/assign", b)
 	if rerr == nil {
 		json.Unmarshal(txt, &returnstatus)
 		if sc != 200 {

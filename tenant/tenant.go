@@ -3,15 +3,16 @@ package tenant
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/tdewin/martini-cli/core"
 )
 
+//password only when new
 type MartiniTenant struct {
 	Name       string `json:"name"`
 	Email      string `json:"email"`
 	Registered string `json:"registered"`
+	Password   string `json:"password"`
 	Id         string `json:"id"`
 }
 
@@ -28,10 +29,11 @@ func (m *MartiniTenant) Create(conn *core.Connection) error {
 			if sc != 200 {
 				err = fmt.Errorf("Not valid return code %d on tenant create [%s]", sc, returnstatus.Status)
 			} else {
-				rerr := json.Unmarshal(txt, &returnstatus)
+				rerr := json.Unmarshal(txt, m)
+				if rerr != nil {
+					err = fmt.Errorf("Could not understand response from server")
+				}
 
-				log.Println("this is my status", returnstatus, "and this is what i got", string(txt), rerr)
-				m.Id = returnstatus.Id
 			}
 		} else {
 			err = rerr
@@ -99,6 +101,21 @@ func Delete(conn *core.Connection, id string) error {
 	return err
 }
 
+func ReverseResolve(conn *core.Connection, tenantid string) (string, error) {
+	tenants, err := List(conn)
+	tenantname := "<unresolved>"
+	if err == nil {
+		for _, t := range tenants {
+			if t.Id == tenantid {
+				tenantname = t.Name
+			}
+		}
+	}
+	if tenantname == "<unresolved>" {
+		err = fmt.Errorf("Could not find tenant with id %s", tenantid)
+	}
+	return tenantname, err
+}
 func Resolve(conn *core.Connection, tenantname string) (string, error) {
 	tenants, err := List(conn)
 	tenantid := "-1"
@@ -110,41 +127,7 @@ func Resolve(conn *core.Connection, tenantname string) (string, error) {
 		}
 	}
 	if tenantid == "-1" {
-		err = fmt.Errorf("Could not find tenant with id %s", tenantname)
+		err = fmt.Errorf("Could not find tenant with name %s", tenantname)
 	}
 	return tenantid, err
-}
-
-type MartiniDeploy struct {
-	Type   string      `json:"type"`
-	Name   string      `json:"name"`
-	Email  string      `json:"email"`
-	Config interface{} `json:"config"`
-}
-type MartiniAmazon struct {
-	Region string `json:"region"`
-}
-
-func NewAWSConfig(name string, email string, region string) *MartiniDeploy {
-	return &MartiniDeploy{"aws", name, email, MartiniAmazon{region}}
-}
-
-func (m *MartiniDeploy) Deploy(conn *core.Connection) error {
-	b, err := json.Marshal(m)
-	returnstatus := core.ReturnStatus{}
-	//json.Unmarshal(txt, returnstatus)
-	//err = fmt.Errorf("Not valid return code %d on tenant create %s", sc, returnstatus.Status)
-	if err == nil {
-		txt, sc, rerr := conn.Post("tenant/deploy", b)
-		if rerr == nil {
-			json.Unmarshal(txt, &returnstatus)
-			if sc != 200 {
-				err = fmt.Errorf("Not valid return code %d on tenant deploy [%s]", sc, returnstatus.Status)
-			}
-		} else {
-			err = rerr
-		}
-	}
-
-	return err
 }

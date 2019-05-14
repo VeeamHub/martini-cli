@@ -29,16 +29,19 @@ func GetTenantCommands() *cli.Command {
 						ValidString{c.String("port"), "port", `[0-9]*`},
 					})
 					po := core.NewPrintOptionsFromCLIContext(c)
-					rs := core.ReturnStatus{Status: "Nothing done (check error)", Id: "-1", SubId: "-1"}
+					rs := tenant.MartiniTenant{Id: "-1", Name: "Not updated"}
 					if err == nil {
 
 						conn := core.NewConnectionFromCLIContext(&po, c)
 						err = conn.Auth(nil, false)
 						if err == nil {
-							t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), "-1", "-1"}
+							t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), "-1", "", "-1"}
 							err = t.Create(conn)
-							rs.Status = "tenant created"
-							rs.Id = t.Id
+							if t.Password != "" {
+								po.Printf("Password tenant : %s", t.Password)
+							}
+
+							rs = t
 							if c.String("fqdn") != "" {
 								if t.Id != "-1" && t.Id != "" {
 									pw := c.String("password")
@@ -55,10 +58,6 @@ func GetTenantCommands() *cli.Command {
 									i := instance.MartiniInstance{Name: fmt.Sprintf("%s-%s", t.Name, c.String("fqdn")), TenantId: t.Id, Type: "Manual", Status: "-1", Location: c.String("location"), Hostname: c.String("fqdn"), Port: c.String("port"),
 										Username: c.String("username"), Password: pw}
 									err = i.Create(conn)
-									if err == nil {
-										rs.Status = "tenant created and instance added"
-										rs.SubId = i.Id
-									}
 								} else {
 									err = fmt.Errorf("Tenant creation did not yield tenant id")
 								}
@@ -117,24 +116,36 @@ func GetTenantCommands() *cli.Command {
 						Aliases: []string{"a"},
 						Usage:   "deploy an amazon EC2 container",
 						Action: func(c *cli.Context) error {
+							po := core.NewPrintOptionsFromCLIContext(c)
+							rs := tenant.MartiniTenant{Id: "-1", Name: "Not updated"}
 							err := ValidateArray([]ValidString{
 								ValidString{c.GlobalString("tenant"), "tenant", "."},
 								ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
 								ValidString{c.String("region"), "region", "."},
 							})
 							if err == nil {
-
-								po := core.NewPrintOptionsFromCLIContext(c)
 								conn := core.NewConnectionFromCLIContext(&po, c)
 								err = conn.Auth(nil, false)
 								if err == nil {
-									t := tenant.NewAWSConfig(c.GlobalString("tenant"), c.GlobalString("email"), c.String("region"))
+									t := tenant.MartiniTenant{c.GlobalString("tenant"), c.GlobalString("email"), "-1", "", "-1"}
+									err = t.Create(conn)
+									if t.Password != "" {
+										po.Printf("Password for tenant is %s", t.Password)
+									}
+									rs = t
 
-									err = t.Deploy(conn)
+									if err == nil {
+										t := instance.NewAWSConfig(t.Id, c.String("region"))
+										rid, rerr := t.Deploy(conn)
+										_ = rid
+										if rerr != nil {
+											err = rerr
+										}
+									}
 								}
 
 							}
-							return err
+							return po.MarshalPrintJSONError(rs, err)
 						},
 						Flags: []cli.Flag{
 							cli.StringFlag{
