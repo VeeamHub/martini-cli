@@ -11,6 +11,11 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+type MartiniTenantWithInstance struct {
+	Tenant    tenant.MartiniTenant
+	Instances []instance.MartiniInstance
+}
+
 //seperation without using global variables
 func GetTenantCommands() *cli.Command {
 	return &cli.Command{
@@ -29,7 +34,7 @@ func GetTenantCommands() *cli.Command {
 						ValidString{c.String("port"), "port", `[0-9]*`},
 					})
 					po := core.NewPrintOptionsFromCLIContext(c)
-					rs := tenant.MartiniTenant{Id: "-1", Name: "Not updated"}
+					rs := MartiniTenantWithInstance{}
 					if err == nil {
 
 						conn := core.NewConnectionFromCLIContext(&po, c)
@@ -41,7 +46,7 @@ func GetTenantCommands() *cli.Command {
 								po.Printf("Password tenant : %s", t.Password)
 							}
 
-							rs = t
+							rs.Tenant = t
 							if c.String("fqdn") != "" {
 								if t.Id != "-1" && t.Id != "" {
 									pw := c.String("password")
@@ -58,6 +63,10 @@ func GetTenantCommands() *cli.Command {
 									i := instance.MartiniInstance{Name: fmt.Sprintf("%s-%s", t.Name, c.String("fqdn")), TenantId: t.Id, Type: "Manual", Status: "-1", Location: c.String("location"), Hostname: c.String("fqdn"), Port: c.String("port"),
 										Username: c.String("username"), Password: pw}
 									err = i.Create(conn)
+									if err == nil {
+										i.Password = ""
+										rs.Instances = append(rs.Instances, i)
+									}
 								} else {
 									err = fmt.Errorf("Tenant creation did not yield tenant id")
 								}
