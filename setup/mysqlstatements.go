@@ -69,18 +69,19 @@ func GetCreateStatements() []NamedQuery {
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_general_aws_config` + "`" + `
 		ADD UNIQUE KEY ` + "`" + `provider` + "`" + ` (` + "`" + `provider` + "`" + `);
-	  `, "primary key general aws config"},
+	  `, "unique key general aws config"},
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_provider_aws_region` + "`" + `
 		ADD UNIQUE KEY ` + "`" + `region` + "`" + ` (` + "`" + `region` + "`" + `);
-	  `, "primary key provider aws region"},
+	  `, "unique key provider aws region"},
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_securestore` + "`" + `
 		ADD PRIMARY KEY (` + "`" + `id` + "`" + `);
 	  `, "primary key secure store"},
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_tenant` + "`" + `
-		ADD PRIMARY KEY (` + "`" + `id` + "`" + `);
+		ADD PRIMARY KEY (` + "`" + `id` + "`" + `),
+		ADD UNIQUE KEY ` + "`" + `email` + "`" + ` (` + "`" + `email` + "`" + `);
 	  `, "primary key tenant"},
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_tenant_instances` + "`" + `
@@ -92,7 +93,8 @@ func GetCreateStatements() []NamedQuery {
 	  `, "primary key token"},
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_user` + "`" + `
-		ADD PRIMARY KEY (` + "`" + `id` + "`" + `);
+		ADD PRIMARY KEY (` + "`" + `id` + "`" + `),
+		ADD UNIQUE KEY ` + "`" + `name` + "`" + ` (` + "`" + `name` + "`" + `);
 	  `, "primary key user"},
 		NamedQuery{`
 	  ALTER TABLE ` + "`" + `martini_endpoint` + "`" + `
