@@ -2,6 +2,7 @@ package setup
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
@@ -9,11 +10,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/cavaliercoder/grab"
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -166,6 +171,7 @@ func DownloadSoftwareGithub(repo string, target string) error {
 
 			//fmt.Println(latest.TagName)
 			//https://github.com/src-d/go-git
+
 			_, err := git.PlainClone(target, false, &git.CloneOptions{
 				URL:           lurl,
 				ReferenceName: plumbing.NewTagReferenceName(latest.TagName),
@@ -191,7 +197,19 @@ func Confirm(q string, pscanner *bufio.Reader) bool {
 	c, e := (pscanner).ReadString('\n')
 	return (e == nil && strings.TrimSpace(c) == "y")
 }
+func Exec(donemsg string, cmd *exec.Cmd) {
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	var errbuf bytes.Buffer
+	cmd.Stderr = &errbuf
 
+	err := cmd.Run()
+	if err != nil {
+		log.Println(err, errbuf.String())
+	} else {
+		log.Println(donemsg, out.String())
+	}
+}
 func SetupWizard() error {
 	var err error
 
@@ -205,6 +223,90 @@ func SetupWizard() error {
 		slash = "\\"
 	}
 
+	preexit := false
+	found := false
+	terraformsrc := "https://releases.hashicorp.com/terraform/0.11.14/terraform_0.11.14_linux_amd64.zip"
+	martinipfwdsrc := "https://dewin.me/martini/martini-pfwd.zip"
+	if runtime.GOOS == "linux" {
+		relfile := "/etc/lsb-release"
+		if _, err := os.Stat(relfile); err == nil {
+			file, err := os.Open(relfile)
+			if err != nil {
+				fmt.Println("Skipped reading release file because of error", err)
+			} else {
+				fscanner := bufio.NewScanner(file)
+
+				re := regexp.MustCompile(`Ubuntu`)
+				for fscanner.Scan() && !found {
+					if re.MatchString(fscanner.Text()) {
+						found = true
+					}
+				}
+				if found {
+					if Confirm("First run? (Do you want to install prereq on an ubuntu system)", scanner) {
+						if Confirm("Ubuntu has been found, do you want me to run apt-get install -y apache2 mysql-server mysql-client php7.2 php7.2-xml composer zip unzip php7.2-mysql? (y)", scanner) {
+							preexit = true
+							Exec("Updating", exec.Command("apt-get", "update"))
+							cmd := exec.Command("apt-get", "install", "-y", "apache2", "mysql-server", "php7.2", "php7.2-xml", "composer", "zip", "unzip", "php7.2-mysql")
+							Exec("Installation done", cmd)
+							Exec("Enabling rewrite", exec.Command("a2enmod", "rewrite"))
+							Exec("Enabling .httpaccess override", exec.Command("sed", "-i", "/<Directory \\/var\\/www\\/>/,/<\\/Directory>/ s/AllowOverride None/AllowOverride All/", "/etc/apache2/apache2.conf"))
+							Exec("Restarting apache", exec.Command("/etc/init.d/apache2", "restart"))
+						}
+						if Confirm("Do you want me to install terraform? (y)", scanner) {
+							_, err := grab.Get("/tmp/terraform.zip", terraformsrc)
+							if err != nil {
+								log.Fatal(err)
+							} else {
+								Exec("Unzip done", exec.Command("unzip", "/tmp/terraform.zip", "-d", "/usr/bin"))
+								Exec("Chmod +x done", exec.Command("chmod", "+x", "/usr/bin/terraform"))
+							}
+						}
+						if Confirm("Do you want me to install martini-pfwd (y)", scanner) {
+							_, err := grab.Get("/tmp/martini-pfwd.zip", martinipfwdsrc)
+							if err != nil {
+								log.Fatal(err)
+							} else {
+								Exec("Unzip done", exec.Command("unzip", "/tmp/martini-pfwd.zip", "-d", "/usr/bin"))
+								Exec("Chmod +x done", exec.Command("chmod", "+x", "/usr/bin/martini-pfwd"))
+
+							}
+						}
+					} else {
+						fmt.Println("skipping prereq setup")
+					}
+
+				}
+			}
+		}
+	}
+	mysqlq := `
+mysql -u root -p
+
+#MySQL commands:
+CREATE DATABASE martini; 
+CREATE USER 'martinidbo'@'localhost' IDENTIFIED BY 'mypasswordthatissupersecret'; 
+GRANT ALL ON martini.* TO 'martinidbo'@'localhost'; 
+GRANT USAGE ON *.* TO 'martinidbo'@'localhost' WITH MAX_QUERIES_PER_HOUR 0;
+`
+	if !found {
+		fmt.Println("This system is not detected as ubuntu. That doesn't mean it can't work but the prereq setup did not run.")
+		fmt.Println("Make sure you manually install all prereq")
+		fmt.Println("packages or equal :", "apache2", "mysql-server", "php7.2", "php7.2-xml", "composer", "zip", "unzip", "php7.2-mysql")
+		fmt.Println("enable mod rewrite")
+		fmt.Println("enable override for .httpaccess")
+		fmt.Println("restart apache")
+		fmt.Println("install terraform", terraformsrc)
+		fmt.Println("install martini-pfwd ", martinipfwdsrc)
+		fmt.Println("Make sure to setup the mysql db and create a database e.g:")
+		fmt.Println(mysqlq)
+
+	}
+	if preexit {
+		fmt.Println("Apt-get has been ran, please make sure that you have setup the mysql db")
+		fmt.Println(mysqlq)
+		return nil
+	}
 	fmt.Printf("Where should I install Martini Web [%s]: ", varwww)
 	installdir, _ := scanner.ReadString('\n')
 	installdir = strings.TrimSpace(installdir)
@@ -215,6 +317,7 @@ func SetupWizard() error {
 	//if Confirm(fmt.Sprintf("Do you want me to download the latest version to %s. It does require the git command to be installed (type y) : ", installdir), scanner) {
 	if Confirm(fmt.Sprintf("Do you want me to download the latest version to %s.(type y) : ", installdir), scanner) {
 		DownloadSoftware(installdir)
+		Exec("Running composer", exec.Command("composer", "--working-dir=/var/www/html", "install"))
 	}
 
 	fmt.Print("What is the database server [127.0.0.1]: ")

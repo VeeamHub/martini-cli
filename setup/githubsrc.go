@@ -1,5 +1,5 @@
 package setup
 
 func githubrepo() string {
-	return "tdewin/rps"
+	return "VeeamHub/martini"
 }
