@@ -65,7 +65,7 @@ FLUSH privileges;
 enable rewrite mod
 ```
 a2enmod rewrite
-`` 
+```
 
 enable override, open it with for example nano
 ```
