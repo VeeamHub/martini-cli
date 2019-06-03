@@ -247,31 +247,47 @@ func SetupWizard() error {
 						if Confirm("Ubuntu has been found, do you want me to run apt-get install -y apache2 mysql-server mysql-client php7.2 php7.2-xml composer zip unzip php7.2-mysql? (y)", scanner) {
 							preexit = true
 							Exec("Updating", exec.Command("apt-get", "update"))
-							cmd := exec.Command("apt-get", "install", "-y", "apache2", "mysql-server", "php7.2", "php7.2-xml", "composer", "zip", "unzip", "php7.2-mysql")
-							Exec("Installation done", cmd)
+							aptpackages := []string{"apache2", "mysql-server", "php7.2", "php7.2-xml", "composer", "zip", "unzip", "php7.2-mysql"}
+
+							for _, p := range aptpackages {
+								fmt.Println("Installing package", p)
+								cmd := exec.Command("apt-get", "install", "-y", p)
+								Exec("Installation Done", cmd)
+							}
+
 							Exec("Enabling rewrite", exec.Command("a2enmod", "rewrite"))
 							Exec("Enabling .httpaccess override", exec.Command("sed", "-i", "/<Directory \\/var\\/www\\/>/,/<\\/Directory>/ s/AllowOverride None/AllowOverride All/", "/etc/apache2/apache2.conf"))
 							Exec("Restarting apache", exec.Command("/etc/init.d/apache2", "restart"))
-						}
-						if Confirm("Do you want me to install terraform? (y)", scanner) {
-							_, err := grab.Get("/tmp/terraform.zip", terraformsrc)
-							if err != nil {
-								log.Fatal(err)
-							} else {
-								Exec("Unzip done", exec.Command("unzip", "/tmp/terraform.zip", "-d", "/usr/bin"))
-								Exec("Chmod +x done", exec.Command("chmod", "+x", "/usr/bin/terraform"))
-							}
-						}
-						if Confirm("Do you want me to install martini-pfwd (y)", scanner) {
-							_, err := grab.Get("/tmp/martini-pfwd.zip", martinipfwdsrc)
-							if err != nil {
-								log.Fatal(err)
-							} else {
-								Exec("Unzip done", exec.Command("unzip", "/tmp/martini-pfwd.zip", "-d", "/usr/bin"))
-								Exec("Chmod +x done", exec.Command("chmod", "+x", "/usr/bin/martini-pfwd"))
 
-							}
 						}
+						if _, err := os.Stat("/usr/bin/terraform"); os.IsNotExist(err) {
+							if Confirm("Do you want me to install terraform? (y)", scanner) {
+								_, err := grab.Get("/tmp/terraform.zip", terraformsrc)
+								if err != nil {
+									log.Fatal(err)
+								} else {
+									Exec("Unzip done", exec.Command("unzip", "/tmp/terraform.zip", "-d", "/usr/bin"))
+									Exec("Chmod +x done", exec.Command("chmod", "+x", "/usr/bin/terraform"))
+								}
+							}
+						} else {
+							fmt.Println("Terraform cmd exists")
+						}
+						if _, err := os.Stat("/usr/bin/martini-pfwd"); os.IsNotExist(err) {
+							if Confirm("Do you want me to install martini-pfwd (y)", scanner) {
+								_, err := grab.Get("/tmp/martini-pfwd.zip", martinipfwdsrc)
+								if err != nil {
+									log.Fatal(err)
+								} else {
+									Exec("Unzip done", exec.Command("unzip", "/tmp/martini-pfwd.zip", "-d", "/usr/bin"))
+									Exec("Chmod +x done", exec.Command("chmod", "+x", "/usr/bin/martini-pfwd"))
+
+								}
+							}
+						} else {
+							fmt.Println("Martini-pfwd cmd exists")
+						}
+
 					} else {
 						fmt.Println("skipping prereq setup")
 					}
