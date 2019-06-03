@@ -225,8 +225,8 @@ func SetupWizard() error {
 
 	preexit := false
 	found := false
-	terraformsrc := "https://releases.hashicorp.com/terraform/0.11.14/terraform_0.11.14_linux_amd64.zip"
-	martinipfwdsrc := "https://dewin.me/martini/martini-pfwd.zip"
+	terraformsrc := terradl()
+	martinipfwdsrc := pfwddl()
 	if runtime.GOOS == "linux" {
 		relfile := "/etc/lsb-release"
 		if _, err := os.Stat(relfile); err == nil {
