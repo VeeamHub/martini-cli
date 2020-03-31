@@ -412,8 +412,8 @@ func GetInstanceCommands() *cli.Command {
 
 							err := ValidateOrArray([][]ValidString{
 								[]ValidString{
-									ValidString{c.GlobalString("tenantid"), "tenantid", "."},
-									ValidString{c.GlobalString("tenantname"), "tenantname", "."},
+									ValidString{c.String("tenantid"), "tenantid", "."},
+									ValidString{c.String("tenantname"), "tenantname", "."},
 								}, []ValidString{
 									ValidString{c.String("region"), "region", "."},
 								},
@@ -423,10 +423,10 @@ func GetInstanceCommands() *cli.Command {
 								conn := core.NewConnectionFromCLIContext(&po, c)
 								err = conn.Auth(nil, false)
 								if err == nil {
-									tenantid := c.GlobalString("tenantid")
+									tenantid := c.String("tenantid")
 
 									if tenantid == "" {
-										tenantid, err = tenant.Resolve(conn, c.GlobalString("tenantname"))
+										tenantid, err = tenant.Resolve(conn, c.String("tenantname"))
 									}
 
 									if err == nil {

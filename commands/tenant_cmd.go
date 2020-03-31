@@ -128,15 +128,15 @@ func GetTenantCommands() *cli.Command {
 							po := core.NewPrintOptionsFromCLIContext(c)
 							rs := tenant.MartiniTenant{Id: "-1", Name: "Not updated"}
 							err := ValidateArray([]ValidString{
-								ValidString{c.GlobalString("tenant"), "tenant", "."},
-								ValidString{c.GlobalString("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
+								ValidString{c.String("tenant"), "tenant", "."},
+								ValidString{c.String("email"), "email", `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`},
 								ValidString{c.String("region"), "region", "."},
 							})
 							if err == nil {
 								conn := core.NewConnectionFromCLIContext(&po, c)
 								err = conn.Auth(nil, false)
 								if err == nil {
-									t := tenant.MartiniTenant{c.GlobalString("tenant"), c.GlobalString("email"), "-1", "", "-1"}
+									t := tenant.MartiniTenant{c.String("tenant"), c.String("email"), "-1", "", "-1"}
 									err = t.Create(conn)
 									if t.Password != "" {
 										po.Printf("Password for tenant is %s", t.Password)

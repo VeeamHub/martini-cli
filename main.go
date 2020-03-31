@@ -86,7 +86,7 @@ func main() {
 				var rerr error
 
 				po := core.NewPrintOptionsFromCLIContext(c)
-				conn := core.NewConnection(&po, c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
+				conn := core.NewConnection(&po, c.String("server"), c.String("token"), c.String("username"), c.String("password"), c.Bool("ignoreSelfSignedCertificate"), c.String("renewtoken"), c.Int64("renewlifetime"), c.Int64("renewserverskew"))
 				rerr = conn.Auth(func() string {
 					pw := ""
 					fmt.Print("Type in the admin password: ")

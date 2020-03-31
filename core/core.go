@@ -240,7 +240,7 @@ func (c *Connection) Auth(askpassword func() string, doRenew bool) error {
 	return rerr
 }
 func NewConnectionFromCLIContext(po *PrintOptions, c *cli.Context) *Connection {
-	return NewConnection(po, c.GlobalString("server"), c.GlobalString("token"), c.GlobalString("username"), c.GlobalString("password"), c.GlobalBool("ignoreSelfSignedCertificate"), c.GlobalString("renewtoken"), c.GlobalInt64("renewlifetime"), c.GlobalInt64("renewserverskew"))
+	return NewConnection(po, c.String("server"), c.String("token"), c.String("username"), c.String("password"), c.Bool("ignoreSelfSignedCertificate"), c.String("renewtoken"), c.Int64("renewlifetime"), c.Int64("renewserverskew"))
 }
 
 func NewConnection(po *PrintOptions, server string, token string, login string, password string, ignoressc bool, renew string, lifetime int64, serverskew int64) *Connection {
@@ -317,7 +317,7 @@ func (p *PrintOptions) MarshalPrintJSONError(m interface{}, err error) error {
 }
 
 func NewPrintOptionsFromCLIContext(c *cli.Context) PrintOptions {
-	return NewPrintOptions(c.GlobalBool("json"), c.GlobalBool("verbose"))
+	return NewPrintOptions(c.Bool("json"), c.Bool("verbose"))
 }
 func NewPrintOptions(json bool, verbose bool) PrintOptions {
 	return PrintOptions{json, verbose}
