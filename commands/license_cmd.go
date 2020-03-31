@@ -34,7 +34,7 @@ func GetLicenseCommands() *cli.Command {
 		Name:    "license",
 		Aliases: []string{"l"},
 		Usage:   "license management",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			{
 				Name:    "listusers",
 				Aliases: []string{"lu"},
@@ -110,12 +110,12 @@ func GetLicenseCommands() *cli.Command {
 					return po.MarshalPrintJSONError(allLicenseUserInstances, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "all",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "name, n",
 						Value: "",
 						Usage: "Name of tenant",
@@ -197,12 +197,12 @@ func GetLicenseCommands() *cli.Command {
 					return po.MarshalPrintJSONError(allLicenseInfoInstances, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "all",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "name, n",
 						Value: "",
 						Usage: "Name of tenant",

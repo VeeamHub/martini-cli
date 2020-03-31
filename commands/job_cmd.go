@@ -25,7 +25,7 @@ func GetJobCommands() *cli.Command {
 		Name:    "job",
 		Aliases: []string{"j"},
 		Usage:   "job management",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			{
 				Name:    "list",
 				Aliases: []string{"l"},
@@ -107,12 +107,12 @@ func GetJobCommands() *cli.Command {
 					return po.MarshalPrintJSONError(alljobs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "all",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "name, n",
 						Value: "",
 						Usage: "Name of tenant",
@@ -162,17 +162,17 @@ func GetJobCommands() *cli.Command {
 					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "jobid, j",
 						Value: "",
 						Usage: "Id of job",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "jobname, o",
 						Value: "",
 						Usage: "Name of Job",

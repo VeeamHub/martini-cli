@@ -69,7 +69,7 @@ func main() {
 	app.Usage = "For remote management and initial setup of martini vbo manager"
 	app.Version = "1.0 (tp-1)"
 	app.Description = "Martini CLI\n     #####\n      ###\n       #\n       |\n       |\n     -----\n"
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name:    "setup",
 			Aliases: []string{"s"},
@@ -120,64 +120,64 @@ func main() {
 				return rerr
 			},
 		},
-		*commands.GetTenantCommands(),
-		*commands.GetInstanceCommands(),
-		*commands.GetJobCommands(),
-		*commands.GetConfigCommands(),
-		*commands.GetLicenseCommands(),
+		commands.GetTenantCommands(),
+		commands.GetInstanceCommands(),
+		commands.GetJobCommands(),
+		commands.GetConfigCommands(),
+		commands.GetLicenseCommands(),
 	}
 
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:   "server, s",
 			Value:  serverDefault,
 			Usage:  "API server",
-			EnvVar: "MARTINICLI_SERVER",
+			EnvVars: []string{"MARTINICLI_SERVER"},
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:   "username, u",
 			Value:  usernameDefault,
 			Usage:  "API Username",
-			EnvVar: "MARTINICLI_USERNAME",
+			EnvVars: []string{"MARTINICLI_USERNAME"},
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:   "password, p",
 			Value:  "",
 			Usage:  "API Password",
-			EnvVar: "MARTINICLI_PASSWORD",
+			EnvVars: []string{"MARTINICLI_PASSWORD"},
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:   "token, t",
 			Value:  tokenDefault,
 			Usage:  "API Token",
-			EnvVar: "MARTINICLI_TOKEN",
+			EnvVars: []string{"MARTINICLI_TOKEN"},
 		},
-		cli.BoolFlag{
+		&cli.StringFlag{
 			Name:   "ignoreSelfSignedCertificate, i",
 			Usage:  "Ignore Self Signed Certificate",
-			EnvVar: "MARTINICLI_IGNORESSC",
+			EnvVars: []string{"MARTINICLI_IGNORESSC"},
 		},
-		cli.BoolFlag{
+		&cli.StringFlag{
 			Name:   "verbose",
 			Usage:  "Be verbose",
-			EnvVar: "MARTINICLI_VERBOSE",
+			EnvVars: []string{"MARTINICLI_VERBOSE"},
 		},
-		cli.BoolFlag{
+		&cli.StringFlag{
 			Name:   "json",
 			Usage:  "Pass json instead of printing",
-			EnvVar: "MARTINICLI_JSON",
+			EnvVars: []string{"MARTINICLI_JSON"},
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "renewtoken",
 			Value: renewtokenDefault,
 			Usage: "renew token (internal)",
 		},
-		cli.Int64Flag{
+		&cli.Int64Flag{
 			Name:  "renewlifetime",
 			Value: renewlifetimeDefault,
 			Usage: "lifetime of renewal token",
 		},
-		cli.Int64Flag{
+		&cli.Int64Flag{
 			Name:  "renewserverskew",
 			Value: renewserverskewDefault,
 			Usage: "skew in clocks between server and client",

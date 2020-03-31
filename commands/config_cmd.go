@@ -11,12 +11,12 @@ func GetConfigCommands() *cli.Command {
 		Name:    "config",
 		Aliases: []string{},
 		Usage:   "config management",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			{
 				Name:    "broker",
 				Aliases: []string{"b"},
 				Usage:   "broker config",
-				Subcommands: []cli.Command{
+				Subcommands: []*cli.Command{
 					{
 						Name:  "add",
 						Usage: "add port",
@@ -35,7 +35,7 @@ func GetConfigCommands() *cli.Command {
 							return err
 						},
 						Flags: []cli.Flag{
-							cli.StringFlag{
+							&cli.StringFlag{
 								Name:  "port, p",
 								Value: "",
 								Usage: "port",
@@ -61,7 +61,7 @@ func GetConfigCommands() *cli.Command {
 							return err
 						},
 						Flags: []cli.Flag{
-							cli.StringFlag{
+							&cli.StringFlag{
 								Name:  "port, p",
 								Value: "",
 								Usage: "port",

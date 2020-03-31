@@ -27,7 +27,7 @@ func GetInstanceCommands() *cli.Command {
 		Name:    "instance",
 		Aliases: []string{"i"},
 		Usage:   "instance management",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			{
 				Name:    "list",
 				Aliases: []string{"l"},
@@ -112,16 +112,16 @@ func GetInstanceCommands() *cli.Command {
 
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "all",
 						Usage: "Id of tenant",
 					},
-					cli.BoolFlag{
+					&cli.BoolFlag{
 						Name:  "showorphans",
 						Usage: "by default orphans are not shown",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "name, n",
 						Value: "",
 						Usage: "Name of tenant",
@@ -152,7 +152,7 @@ func GetInstanceCommands() *cli.Command {
 					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "",
 						Usage: "Id of tenant",
@@ -196,17 +196,17 @@ func GetInstanceCommands() *cli.Command {
 					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "newtenantid",
 						Value: "",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "newtenantname, n",
 						Value: "",
 						Usage: "Name of the tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "first",
 						Usage: "Id of tenant instance; default is first which will just select the first tenant if you don't specify an instance id but you specify tenant",
@@ -274,22 +274,22 @@ func GetInstanceCommands() *cli.Command {
 					return po.MarshalPrintJSONError(bep, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenantid",
 						Value: "",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenantname, n",
 						Value: "",
 						Usage: "Name of the tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "first",
 						Usage: "Id of tenant instance; default is first which will just select the first tenant if you don't specify an instance id but you specify tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "clientip, c",
 						Value: "",
 						Usage: "IP of your local break-out towards the server. If empty, the server will try to autodetect",
@@ -360,37 +360,37 @@ func GetInstanceCommands() *cli.Command {
 					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenantid",
 						Value: "",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenantname, n",
 						Value: "",
 						Usage: "Name of the tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "fqdn, f",
 						Value: "",
 						Usage: "FQDN instance",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "port",
 						Value: "4443",
 						Usage: "FQDN port",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "username, u",
 						Value: "",
 						Usage: "Username instance",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "password, p",
 						Value: "",
 						Usage: "Password instance",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "location",
 						Value: "unknown",
 						Usage: "Username instance",
@@ -401,7 +401,7 @@ func GetInstanceCommands() *cli.Command {
 				Name:    "deploy",
 				Aliases: []string{"d"},
 				Usage:   "deploy tenant (will create a new installation instead of just adding it to martini)",
-				Subcommands: []cli.Command{
+				Subcommands: []*cli.Command{
 					{
 						Name:    "amazon",
 						Aliases: []string{"a"},
@@ -443,7 +443,7 @@ func GetInstanceCommands() *cli.Command {
 							return po.MarshalPrintJSONError(rs, err)
 						},
 						Flags: []cli.Flag{
-							cli.StringFlag{
+							&cli.StringFlag{
 								Name:  "region",
 								Value: "",
 								Usage: "AWS Region",
@@ -452,12 +452,12 @@ func GetInstanceCommands() *cli.Command {
 					},
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenantid",
 						Value: "",
 						Usage: "Id of tenant",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenantname, n",
 						Value: "",
 						Usage: "Name of the tenant",

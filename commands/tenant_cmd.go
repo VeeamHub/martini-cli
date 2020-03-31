@@ -22,7 +22,7 @@ func GetTenantCommands() *cli.Command {
 		Name:    "tenant",
 		Aliases: []string{"t"},
 		Usage:   "tenant management",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			{
 				Name:    "create",
 				Aliases: []string{"c"},
@@ -78,37 +78,37 @@ func GetTenantCommands() *cli.Command {
 					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenant, t",
 						Value: "",
 						Usage: "Tenant name",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "email, e",
 						Value: "",
 						Usage: "Email",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "fqdn, f",
 						Value: "",
 						Usage: "FQDN instance",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "port",
 						Value: "4443",
 						Usage: "FQDN port",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "username, u",
 						Value: "",
 						Usage: "Username instance",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "password, p",
 						Value: "",
 						Usage: "Password instance",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "location",
 						Value: "unknown",
 						Usage: "Username instance",
@@ -119,7 +119,7 @@ func GetTenantCommands() *cli.Command {
 				Name:    "deploy",
 				Aliases: []string{"d"},
 				Usage:   "deploy tenant (will create a new installation instead of just adding it to martini)",
-				Subcommands: []cli.Command{
+				Subcommands: []*cli.Command{
 					{
 						Name:    "amazon",
 						Aliases: []string{"a"},
@@ -157,7 +157,7 @@ func GetTenantCommands() *cli.Command {
 							return po.MarshalPrintJSONError(rs, err)
 						},
 						Flags: []cli.Flag{
-							cli.StringFlag{
+							&cli.StringFlag{
 								Name:  "region",
 								Value: "",
 								Usage: "AWS Region",
@@ -166,12 +166,12 @@ func GetTenantCommands() *cli.Command {
 					},
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "tenant, t",
 						Value: "",
 						Usage: "Tenant name",
 					},
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "email, e",
 						Value: "",
 						Usage: "Email",
@@ -232,7 +232,7 @@ func GetTenantCommands() *cli.Command {
 					return po.MarshalPrintJSONError(rs, err)
 				},
 				Flags: []cli.Flag{
-					cli.StringFlag{
+					&cli.StringFlag{
 						Name:  "id, i",
 						Value: "",
 						Usage: "Id of tenant",
