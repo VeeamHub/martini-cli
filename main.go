@@ -73,9 +73,19 @@ func main() {
 		{
 			Name:    "setup",
 			Aliases: []string{"s"},
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "resetadmin",
+					Usage: "Use to recover admin password, must be executed on the server and you need db password",
+				},
+			},
 			Usage:   "Setup wizard. This will create the database schema and setup file. Should only be used the server itself.",
 			Action: func(c *cli.Context) error {
-				return setup.SetupWizard()
+				if (c.Bool("resetadmin")) {
+					return setup.ResetWizard()
+				} else {
+					return setup.SetupWizard()
+				}
 			},
 		},
 		{

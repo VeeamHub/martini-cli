@@ -63,6 +63,40 @@ func CreateRestToken(dbhost string, dbname string, dblogin string, dbbytePasswor
 	return err
 }
 
+func ResetPassword(dbhost string, dbname string, dblogin string, dbbytePassword []byte, userPasswordByte []byte) (error) {
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", dblogin, string(dbbytePassword), dbhost, dbname))
+	defer db.Close()
+
+	if err == nil {
+		h := sha512.New()
+		h.Write([]byte("martini!"))
+		h.Write(userPasswordByte)
+
+		stmtCreate, err := db.Prepare(fmt.Sprintf(`
+UPDATE martini_user SET hashpassword = "%X" WHERE name = "admin"
+		`, h.Sum(nil)))
+
+		if err != nil {
+			log.Printf("Problem updating..")
+			return err
+		}
+		defer stmtCreate.Close()
+
+		_, err = stmtCreate.Exec()
+		if err == nil {
+			fmt.Println("Admin should be reset")
+
+		} else {
+			log.Printf("Problem updating")
+			return err
+		}
+
+	} else {
+		log.Printf("Could not connect")
+	}
+	return err
+}
+
 func CreateUser(dbhost string, dbname string, dblogin string, dbbytePassword []byte, userPasswordByte []byte) (error, int64) {
 	var id int64
 
@@ -209,6 +243,53 @@ func Exec(donemsg string, cmd *exec.Cmd) {
 	} else {
 		log.Println(donemsg, out.String())
 	}
+}
+func ResetWizard() error {
+	var err error
+
+	scanner := bufio.NewReader(os.Stdin)
+
+	fmt.Print("What is the database server [127.0.0.1]: ")
+	db, _ := scanner.ReadString('\n')
+	db = strings.TrimSpace(db)
+	if db == "" {
+		db = "127.0.0.1"
+	}
+
+	fmt.Print("What is the database name [martini]: ")
+	dbname, _ := scanner.ReadString('\n')
+	dbname = strings.TrimSpace(dbname)
+	if dbname == "" {
+		dbname = "martini"
+	}
+
+	fmt.Print("What is the database login [martinidbo]: ")
+	dblogin, _ := scanner.ReadString('\n')
+	dblogin = strings.TrimSpace(dblogin)
+	if dblogin == "" {
+		dblogin = "martinidbo"
+	}
+
+	fmt.Print("What is the database password:")
+	dbbytePassword, errp := terminal.ReadPassword(int(syscall.Stdin))
+	for errp != nil || len(string(dbbytePassword)) < 3 {
+		fmt.Println()
+		fmt.Print("Password can not be empty (min 3 char):")
+		dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
+	}
+
+	fmt.Print("Type in the admin password: ")
+	userPasswordByte, errp := terminal.ReadPassword(int(syscall.Stdin))
+	for errp != nil || len(string(userPasswordByte)) < 3 {
+		fmt.Println()
+		fmt.Print("Password can not be empty (min 3 char):")
+		userPasswordByte, errp = terminal.ReadPassword(int(syscall.Stdin))
+	}
+
+	err = ResetPassword(db, dbname , dblogin, dbbytePassword, userPasswordByte) 
+
+
+	return err
 }
 func SetupWizard() error {
 	var err error
