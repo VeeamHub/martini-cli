@@ -278,6 +278,7 @@ func ResetWizard() error {
 		dbbytePassword, errp = terminal.ReadPassword(int(syscall.Stdin))
 	}
 
+	fmt.Println()
 	fmt.Print("Type in the admin password: ")
 	userPasswordByte, errp := terminal.ReadPassword(int(syscall.Stdin))
 	for errp != nil || len(string(userPasswordByte)) < 3 {
@@ -286,6 +287,7 @@ func ResetWizard() error {
 		userPasswordByte, errp = terminal.ReadPassword(int(syscall.Stdin))
 	}
 
+	fmt.Println()
 	err = ResetPassword(db, dbname , dblogin, dbbytePassword, userPasswordByte) 
 
 
