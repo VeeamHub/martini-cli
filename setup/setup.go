@@ -243,11 +243,11 @@ func SetupWizard() error {
 					}
 				}
 				if found {
-					if Confirm("First run? (Do you want to install prereq on an ubuntu system)", scanner) {
-						if Confirm("Ubuntu has been found, do you want me to run apt-get install -y apache2 mysql-server mysql-client php7.2 php7.2-xml composer zip unzip php7.2-mysql? (y)", scanner) {
+					if Confirm("First run? (Do you want to install prereq on an ubuntu system) (y/n)", scanner) {
+						if Confirm("Ubuntu has been found, do you want me to run apt-get install -y apache2 mysql-server mysql-client php php-xml composer zip unzip php-mysql? (y)", scanner) {
 							preexit = true
 							Exec("Updating", exec.Command("apt-get", "update"))
-							aptpackages := []string{"apache2", "mysql-server", "php7.2", "php7.2-xml", "composer", "zip", "unzip", "php7.2-mysql"}
+							aptpackages := []string{"apache2", "mysql-server", "php", "php-xml", "composer", "zip", "unzip", "php-mysql"}
 
 							for _, p := range aptpackages {
 								fmt.Println("Installing package", p)
@@ -301,14 +301,14 @@ mysql -u root -p
 
 #MySQL commands:
 CREATE DATABASE martini; 
-CREATE USER 'martinidbo'@'localhost' IDENTIFIED BY 'mypasswordthatissupersecret'; 
+CREATE USER 'martinidbo'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mypasswordthatissupersecret'; 
 GRANT ALL ON martini.* TO 'martinidbo'@'localhost'; 
 GRANT USAGE ON *.* TO 'martinidbo'@'localhost' WITH MAX_QUERIES_PER_HOUR 0;
 `
 	if !found {
 		fmt.Println("This system is not detected as ubuntu. That doesn't mean it can't work but the prereq setup did not run.")
 		fmt.Println("Make sure you manually install all prereq")
-		fmt.Println("packages or equal :", "apache2", "mysql-server", "php7.2", "php7.2-xml", "composer", "zip", "unzip", "php7.2-mysql")
+		fmt.Println("packages or equal :", "apache2", "mysql-server", "php7", "php-xml", "composer", "zip", "unzip", "php-mysql")
 		fmt.Println("enable mod rewrite")
 		fmt.Println("enable override for .httpaccess")
 		fmt.Println("restart apache")
