@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tdewin/martini-cli/instance"
-	"github.com/tdewin/martini-cli/licensemgmt"
+	"github.com/VeeamHub/martini-cli/instance"
+	"github.com/VeeamHub/martini-cli/licensemgmt"
 
-	"github.com/tdewin/martini-cli/core"
-	"github.com/tdewin/martini-cli/tenant"
+	"github.com/VeeamHub/martini-cli/core"
+	"github.com/VeeamHub/martini-cli/tenant"
 	"github.com/urfave/cli"
 )
 

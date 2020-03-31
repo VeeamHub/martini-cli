@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/tdewin/martini-cli/core"
+	"github.com/VeeamHub/martini-cli/core"
 )
 
 type MartiniJob struct {

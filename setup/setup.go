@@ -28,7 +28,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/tdewin/martini-cli/core"
+	"github.com/VeeamHub/martini-cli/core"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

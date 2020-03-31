@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/tdewin/martini-cli/config"
-	"github.com/tdewin/martini-cli/core"
+	"github.com/VeeamHub/martini-cli/config"
+	"github.com/VeeamHub/martini-cli/core"
 	"github.com/urfave/cli"
 )
 

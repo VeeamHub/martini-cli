@@ -11,11 +11,11 @@ import (
 	"syscall"
 
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/tdewin/martini-cli/commands"
-	"github.com/tdewin/martini-cli/core"
+	"github.com/VeeamHub/martini-cli/commands"
+	"github.com/VeeamHub/martini-cli/core"
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/tdewin/martini-cli/setup"
+	"github.com/VeeamHub/martini-cli/setup"
 
 	"github.com/urfave/cli"
 )
