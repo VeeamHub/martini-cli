@@ -3,6 +3,8 @@
 A CLI for [Project Martini](https://github.com/VeeamHub/martini-web) using [Go](https://golang.org/).
 
 ## 📗 Documentation
+Tested with Ubuntu 20.04 LTS. As such there is a strong recommendation to use 20.04 LTS as it should create a stable, long time environment
+
 
 Download CLI
 
@@ -39,7 +41,7 @@ https://www.vultr.com/docs/configure-apache-with-select-signed-tls-ssl-certifica
 # Manual prereq install
 
 ```bash
-apt-get install -y apache2 mysql-server mysql-client php7.2 php7.2-xml composer zip unzip php7.2-mysql
+apt-get install -y apache2 mysql-server mysql-client php php-xml composer zip unzip php-mysql
 ```
 
 ```bash
@@ -49,14 +51,15 @@ mv terraform /usr/bin
 ```
 
 ```bash
-wget http://18.185.97.211:7333/redistr/martini-cli
-wget http://18.185.97.211:7333/redistr/martini-pfwd
-chmod +x martini*
+wget http://dewin.me/martini/martini-cli.zip
+wget http://dewin.me/martini/martini-pfwd.zip
+unzip martini-cli.zip -d /usr/bin
+unzip martini-pfwd.zip -d /usr/bin
+chmod +x martini-*
 mv martini* /usr/bin
 ```
 
 mysql
-
 ```bash
 mysql -u root -p
 ```
@@ -65,11 +68,13 @@ SQL commands:
 
 ```sql
 CREATE DATABASE martini; 
-CREATE USER 'martinidbo'@'localhost' IDENTIFIED BY 'gkGfLhK6Vbg399q2'; 
+CREATE USER 'martinidbo'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mypasswordthatissupersecret'; 
 GRANT ALL ON martini.* TO 'martinidbo'@'localhost'; 
 GRANT USAGE ON *.* TO 'martinidbo'@'localhost' WITH MAX_QUERIES_PER_HOUR 0;
 FLUSH privileges;
 ```
+
+Note that starting from MySQL 8.0 native password is no longer the default and thus must be specified manually if you want to use this mode
 
 enable rewrite mod
 
