@@ -453,7 +453,7 @@ GRANT USAGE ON *.* TO 'martinidbo'@'localhost' WITH MAX_QUERIES_PER_HOUR 0;
 		err = Setup(db, dbname, dblogin, dbbytePassword)
 
 		if err == nil {
-			fmt.Print("Type in the admin password: ")
+			fmt.Print("Set the admin password: ")
 			userPasswordByte, errp := terminal.ReadPassword(int(syscall.Stdin))
 			for errp != nil || len(string(userPasswordByte)) < 3 {
 				fmt.Println()
