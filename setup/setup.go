@@ -386,7 +386,11 @@ mysql -u root -p
 CREATE DATABASE martini; 
 CREATE USER 'martinidbo'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mypasswordthatissupersecret'; 
 GRANT ALL ON martini.* TO 'martinidbo'@'localhost'; 
+
+# Ubuntu older
 GRANT USAGE ON *.* TO 'martinidbo'@'localhost' WITH MAX_QUERIES_PER_HOUR 0;
+# Ubuntu 20.04
+GRANT USAGE ON *.* TO 'martinidbo'@'localhost';
 `
 	if !found {
 		fmt.Println("This system is not detected as ubuntu. That doesn't mean it can't work but the prereq setup did not run.")
