@@ -44,7 +44,7 @@ func GetCreateStatements() []NamedQuery {
 		` + "`" + `id` + "`" + ` int(6) UNSIGNED NOT NULL,
 		` + "`" + `keyval` + "`" + ` varchar(100) DEFAULT NULL,
 		` + "`" + `encryptedpassword` + "`" + ` varchar(250) DEFAULT NULL,
-		` + "`" + `encryptedpassword_aes ` + "`" + ` BLOB DEFAULT NULL
+		` + "`" + `encryptedpassword_aes` + "`" + ` BLOB DEFAULT NULL
 	  );`, "SecureStore"}, NamedQuery{`
 	CREATE TABLE ` + "`" + `martini_endpoint` + "`" + ` (
 		` + "`" + `id` + "`" + ` int(6) UNSIGNED NOT NULL,
